@@ -1,0 +1,368 @@
+/* style.css — 拼音学习工具全局样式（iPad 触控优化 · 卡通风格） */
+
+:root {
+  --primary: #FF9800;
+  --primary-dark: #E68900;
+  --bg: #FFF8EF;
+  --card: #FFFFFF;
+  --text: #4A3B32;
+  --green: #4CAF50;
+  --red: #F44336;
+  --blue: #42A5F5;
+  --purple: #AB47BC;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  /* 禁止双指缩放，模拟 App 手感 */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 顶栏 */
+.app-header {
+  background: var(--primary);
+  color: #fff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.app-title {
+  font-size: 24px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-title .logo { font-size: 28px; }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-star { font-size: 20px; }
+
+/* 主容器 */
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: 90px; /* 给底部导航留空间 */
+}
+
+/* 底部导航 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  display: flex;
+  border-top: 2px solid #f0e6da;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+  z-index: 20;
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 4px 12px;
+  font-size: 12px;
+  color: #999;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.nav-item .nav-icon { font-size: 26px; margin-bottom: 2px; }
+.nav-item.active { color: var(--primary); font-weight: 700; }
+
+/* 通用大按钮 */
+.primary-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 14px 24px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 16px;
+  cursor: pointer;
+  min-height: 48px;
+}
+.ghost-btn {
+  background: #f0e6da;
+  color: var(--text);
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+button:active { transform: scale(0.96); }
+
+/* 学习模块 */
+.learn-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 14px;
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  background: #eadfcb;
+  color: var(--text);
+  cursor: pointer;
+}
+.tab-btn.active { background: var(--primary); color: #fff; }
+
+.learn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+}
+.card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 16px 10px;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+.card:active { transform: scale(0.95); }
+.card-big { font-size: 40px; font-weight: 800; color: var(--primary-dark); }
+.card-example { font-size: 14px; color: #999; margin-top: 6px; }
+.card-check { font-size: 12px; color: var(--green); min-height: 16px; margin-top: 4px; }
+.learn-card.learned { border: 3px solid var(--green); }
+.card.pop { animation: pop 0.3s; }
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* 练习模块 */
+.practice-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mode-btn {
+  padding: 12px 16px;
+  font-size: 16px;
+  border: none;
+  border-radius: 12px;
+  background: #eadfcb;
+  cursor: pointer;
+}
+.mode-btn.active { background: var(--purple); color: #fff; }
+
+.streak-bar {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+.streak-bar b { color: var(--primary); font-size: 22px; }
+
+.practice-area {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  min-height: 320px;
+}
+.question-prompt {
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.answer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+.answer-btn {
+  padding: 28px 12px;
+  font-size: 32px;
+  font-weight: 800;
+  border: 3px solid #e0d6c8;
+  border-radius: 18px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 90px;
+}
+.answer-btn:active { transform: scale(0.95); }
+.answer-btn.correct-highlight {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.tone-btn { font-size: 26px; }
+.build-word {
+  text-align: center;
+  font-size: 40px;
+  margin: 10px 0 24px;
+}
+.build-word .build-py { font-size: 28px; color: var(--primary-dark); margin-left: 10px; }
+.mini-speak {
+  font-size: 24px;
+  margin-left: 10px;
+  border: none;
+  background: #f0e6da;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.feedback {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  margin-top: 16px;
+  min-height: 36px;
+}
+.feedback.ok { color: var(--green); }
+.feedback.no { color: var(--red); }
+
+/* 打卡模块 */
+.checkin-header {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+.checkin-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-box {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.stat-box b { font-size: 28px; color: var(--primary-dark); display: block; }
+.stat-box span { font-size: 14px; color: #999; }
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.cal-day {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 10px 4px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+.cal-day.today { border: 3px solid var(--primary); }
+.cal-day.done { background: #E8F5E9; }
+.cal-date { font-size: 13px; color: #888; }
+.cal-icon { font-size: 22px; margin-top: 4px; min-height: 26px; }
+.checkin-goal { font-size: 18px; text-align: center; margin-bottom: 12px; }
+.checkin-progress .progress-bar {
+  height: 18px;
+  background: #eee;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 10px;
+  transition: width 0.4s;
+}
+
+/* 家长模式 */
+.parent-panel { background: var(--card); border-radius: 20px; padding: 20px; }
+.parent-title { font-size: 24px; font-weight: 800; margin-bottom: 12px; }
+.parent-section { margin-bottom: 20px; }
+.parent-section h3 { font-size: 18px; color: var(--primary-dark); margin-bottom: 8px; }
+.parent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.pstat {
+  background: #faf5ee;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  font-size: 14px;
+}
+.pstat b { display: block; font-size: 24px; color: var(--primary-dark); }
+.mistake-list { padding-left: 20px; }
+.mistake-list li { font-size: 18px; margin-bottom: 6px; }
+.mistake-py { color: var(--purple); font-weight: 700; }
+.empty { color: #999; font-size: 16px; }
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 17px;
+  margin-bottom: 12px;
+}
+.setting-row input {
+  font-size: 18px;
+  padding: 10px;
+  border: 2px solid #e0d6c8;
+  border-radius: 10px;
+  width: 120px;
+  text-align: center;
+}
+.pin-input {
+  font-size: 20px;
+  padding: 12px;
+  border: 2px solid #e0d6c8;
+  border-radius: 12px;
+  width: 200px;
+  text-align: center;
+  letter-spacing: 6px;
+}
+.parent-lock { text-align: center; padding: 40px 20px; }
+.lock-title { font-size: 26px; font-weight: 800; margin-bottom: 20px; }
+.pin-error { color: var(--red); margin-top: 12px; }
+#pin-submit { margin-top: 14px; }
+
+/* 空状态 */
+.view-title {
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+  margin: 8px 0 16px;
+  color: var(--text);
+}

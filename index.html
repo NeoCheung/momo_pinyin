@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="拼音小达人" />
+  <meta name="description" content="给小朋友的汉语拼音学习工具" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>拼音小达人</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="app-title"><span class="logo">📖</span> 拼音小达人</div>
+    <div class="header-right">
+      <span class="header-star">⭐ <span id="header-stars">0</span></span>
+      <span class="header-star">🏆 <span id="header-trophies">0</span></span>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="main" id="main"></main>
+
+  <!-- 底部导航 -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-item active" data-view="learn">
+      <span class="nav-icon">📚</span>学习
+    </button>
+    <button class="nav-item" data-view="practice">
+      <span class="nav-icon">🎮</span>练习
+    </button>
+    <button class="nav-item" data-view="checkin">
+      <span class="nav-icon">📅</span>打卡
+    </button>
+    <button class="nav-item" data-view="parents">
+      <span class="nav-icon">👨‍👩‍👦</span>家长
+    </button>
+  </nav>
+
+  <script src="js/pinyin-data.js"></script>
+  <script src="js/tts.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/learn.js"></script>
+  <script src="js/practice.js"></script>
+  <script src="js/checkin.js"></script>
+  <script src="js/parents.js"></script>
+  <script>
+    // 应用启动：路由 + 渲染
+    const main = document.getElementById("main");
+    const navItems = document.querySelectorAll(".nav-item");
+    let currentView = "learn";
+
+    function renderHeader() {
+      document.getElementById("header-stars").textContent = App.state.stars;
+      document.getElementById("header-trophies").textContent = App.state.trophies;
+    }
+
+    function renderView(view) {
+      currentView = view;
+      navItems.forEach((n) => n.classList.toggle("active", n.dataset.view === view));
+      switch (view) {
+        case "learn":
+          main.innerHTML = '<div class="view-title">🔤 学一学</div>';
+          Learn.render(main);
+          break;
+        case "practice":
+          main.innerHTML = '<div class="view-title">🎮 练一练</div>';
+          Practice.render(main);
+          break;
+        case "checkin":
+          Checkin.render(main);
+          break;
+        case "parents":
+          Parents.render(main);
+          break;
+      }
+      renderHeader();
+    }
+
+    navItems.forEach((n) => {
+      n.addEventListener("click", () => renderView(n.dataset.view));
+    });
+
+    // 初始渲染
+    renderView("learn");
+
+    // 注册 service worker（离线）
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+      });
+    }
+
+    // 首次交互唤醒 TTS
+    document.addEventListener("touchstart", function wake() {
+      PinyinTTS.init();
+      document.removeEventListener("touchstart", wake);
+    }, { once: true });
+  </script>
+</body>
+</html>
