@@ -88,7 +88,8 @@ window.Practice = (function () {
     const q = (current = makeQuestion());
 
     if (current.speakOnShow) {
-      setTimeout(() => PinyinTTS.speak(current.speakOnShow.sound, 0.8), 50);
+      // 展示音：拼读该汉字音节（先拼读过程，再读完整）
+      setTimeout(() => PinyinTTS.spellWord(current.speakOnShow.char, current.speakOnShow.sound, 0.8), 50);
     }
 
     area.innerHTML = `<div class="question-prompt">${q.prompt}</div>`;
@@ -126,7 +127,7 @@ window.Practice = (function () {
     `;
     area.querySelector(".mini-speak").addEventListener("click", (e) => {
       e.stopPropagation();
-      PinyinTTS.speak(q.sound, 0.8);
+      PinyinTTS.spellWord(q.char, q.sound, 0.8);
     });
   }
 
@@ -173,8 +174,8 @@ window.Practice = (function () {
       streak++;
       document.querySelector("#streak").textContent = streak;
       App.recordAnswer(true, mode, q.q.sound, q.q.pinyin);
-      // 正确提示音
-      PinyinTTS.speak(q.q.char, 0.9);
+      // 正确提示音：拼读正确答案（先拼读过程，再读完整）
+      PinyinTTS.spellWord(q.q.char, q.q.sound, 0.9);
       showFeedback("✅ 太棒了！", true);
     } else {
       // 答错

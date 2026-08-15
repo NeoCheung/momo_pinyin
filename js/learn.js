@@ -44,7 +44,10 @@ window.Learn = (function () {
     grid.querySelectorAll(".learn-card").forEach((card) => {
       card.addEventListener("click", () => {
         const sound = card.dataset.sound;
-        PinyinTTS.speak(sound, 0.8);
+        const example = card.querySelector(".card-example").textContent;
+        // 按卡片类型拼读：声母=呼读音+例字，韵母=标准音+例字，整体认读=完整音
+        const type = currentKind === "INITIALS" ? "initial" : currentKind === "FINALS" ? "final" : "whole";
+        PinyinTTS.speakPinyin(sound, type, example, 0.8);
         App.markLearned(kind, card.dataset.pinyin);
         card.classList.add("learned");
         card.querySelector(".card-check").textContent = "✓ 已学";
