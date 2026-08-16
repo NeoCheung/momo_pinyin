@@ -2,7 +2,7 @@
 // 策略：cache-first（优先缓存）+ 版本号控制。
 // 重要：修改任何静态资源后，务必把 CACHE 版本号 +1（如 v1 → v2），
 // 这样部署后 service worker 重新安装会清掉旧缓存并拉取新资源。
-const CACHE = "pinyin-tool-v8";
+const CACHE = "pinyin-tool-v9";
 const ASSETS = [
   "./",
   "./index.html",

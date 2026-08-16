@@ -224,6 +224,7 @@ window.Practice = (function () {
       PinyinTTS.spellWord(q.q.char, q.q.sound, 0.85);
       submitBtn.textContent = "下一题 →";
       submitBtn.disabled = false;
+      submitBtn.classList.add("next-btn");
       // 重置点击行为为进入下一题
       const newBtn = submitBtn.cloneNode(true);
       submitBtn.parentNode.replaceChild(newBtn, submitBtn);

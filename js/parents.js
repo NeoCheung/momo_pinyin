@@ -88,7 +88,8 @@ window.Parents = (function () {
     });
 
     container.querySelector("#reset-data").addEventListener("click", () => {
-      if (confirm("确定重置所有数据？此操作不可恢复！")) {
+      const p = App.getCurrentProfile();
+      if (confirm(`确定重置「${p.label}」账号的所有数据？此操作不可恢复!`)) {
         App.resetForDemo();
         alert("已重置");
         render(container);

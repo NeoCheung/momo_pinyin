@@ -1,34 +1,65 @@
-// app.js — 应用主逻辑：路由切换 + 状态管理 + 每日打卡 + 家长数据
+// app.js — 应用主逻辑:状态管理 + 每日打卡 + 家长数据 + 多账号(Profile)
 
 window.App = (function () {
-  const STORAGE_KEY = "pinyin_tool_state_v1";
+  const STORAGE_PREFIX = "pinyin_tool_state_v1"; // 每个 profile 存到 `${STORAGE_PREFIX}__${profileId}`
+  const LEGACY_KEY = "pinyin_tool_state_v1";     // 老版本无 profile 后缀,升级时迁移
+  const CURRENT_PROFILE_KEY = "pinyin_tool_current_profile_v1";
 
-  // 默认状态
+  // 内置账号(可扩展)。id 用于 storage 后缀,label 展示给用户
+  const PROFILES = [
+    { id: "default", label: "正式", icon: "👤" },
+    { id: "test", label: "测试", icon: "🧪" },
+  ];
+
   const DEFAULT_STATE = {
-    // 每日打卡记录: { "2026-08-15": { done: true, correct: 20, total: 25 } }
     checkins: {},
-    // 累计星星/奖杯
     stars: 0,
     trophies: 0,
-    // 统计汇总（历史累计）
     stats: { correct: 0, total: 0, byType: {} },
-    // 错题本: { "ba1": { count: 3, last: "2026-08-15", py: "bā" } }
     mistakes: {},
-    // 家长设置
     settings: { dailyGoal: 10, checkinGoal: 10, parentPin: "0426" },
-    // 当前学习进度
-    progress: {
-      initials: [], // 已学过的声母
-      finals: [],   // 已学过的韵母
-    },
+    progress: { initials: [], finals: [] },
   };
 
+  let currentProfile = loadCurrentProfile();
+  migrateLegacy(); // 首次运行:把老 key 迁移到 default profile
   let state = load();
 
-  // ---------- 状态持久化 ----------
+  function storageKeyFor(profileId) {
+    return `${STORAGE_PREFIX}__${profileId}`;
+  }
+
+  function loadCurrentProfile() {
+    try {
+      const id = localStorage.getItem(CURRENT_PROFILE_KEY);
+      if (id && PROFILES.some((p) => p.id === id)) return id;
+    } catch (e) { /* ignore */ }
+    return "default";
+  }
+
+  function saveCurrentProfile() {
+    try { localStorage.setItem(CURRENT_PROFILE_KEY, currentProfile); }
+    catch (e) { /* ignore */ }
+  }
+
+  function migrateLegacy() {
+    try {
+      const legacy = localStorage.getItem(LEGACY_KEY);
+      const defaultKey = storageKeyFor("default");
+      // 老 key 有内容 且 新 default key 还没数据 → 迁移
+      if (legacy && !localStorage.getItem(defaultKey)) {
+        localStorage.setItem(defaultKey, legacy);
+      }
+      // 迁移后清掉老 key(避免下次又冲掉新数据)
+      if (legacy && localStorage.getItem(defaultKey)) {
+        localStorage.removeItem(LEGACY_KEY);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   function load() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(storageKeyFor(currentProfile));
       if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
       const saved = JSON.parse(raw);
       return Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_STATE)), saved);
@@ -39,7 +70,7 @@ window.App = (function () {
 
   function save() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(storageKeyFor(currentProfile), JSON.stringify(state));
     } catch (e) {
       console.warn("localStorage 写入失败", e);
     }
@@ -52,14 +83,30 @@ window.App = (function () {
     ).padStart(2, "0")}`;
   }
 
+  // ---------- 账号切换 ----------
+  function listProfiles() { return PROFILES.slice(); }
+  function getCurrentProfile() {
+    return PROFILES.find((p) => p.id === currentProfile) || PROFILES[0];
+  }
+  function switchProfile(id) {
+    if (!PROFILES.some((p) => p.id === id)) return false;
+    if (id === currentProfile) return true;
+    // 切换前先把当前 profile 落盘
+    save();
+    currentProfile = id;
+    saveCurrentProfile();
+    state = load();
+    // 通知 UI 全量重渲染
+    document.dispatchEvent(new CustomEvent("app:profile-changed", { detail: { profileId: id } }));
+    return true;
+  }
+
   // ---------- 打卡 ----------
   function recordAnswer(correct, type, pinyinKey, display) {
     if (correct) {
       state.stats.correct++;
-      // 加分
       state.stars += 1;
     } else {
-      // 记错题
       if (!state.mistakes[pinyinKey]) {
         state.mistakes[pinyinKey] = { count: 0, last: todayStr(), py: display, type };
       }
@@ -72,7 +119,6 @@ window.App = (function () {
     state.stats.byType[type].total++;
     if (correct) state.stats.byType[type].correct++;
 
-    // 每 10 星换一枚奖杯
     while (state.stars >= 10) {
       state.stars -= 10;
       state.trophies++;
@@ -80,18 +126,13 @@ window.App = (function () {
     save();
   }
 
-  // 今日打卡
   function todayCheckin() {
-    const t = todayStr();
-    return state.checkins[t] || null;
+    return state.checkins[todayStr()] || null;
   }
   function setCheckin(done, correct, total) {
-    const t = todayStr();
-    state.checkins[t] = { done, correct, total };
+    state.checkins[todayStr()] = { done, correct, total };
     save();
   }
-
-  // 今日是否已达标（正确数 >= 每日目标）
   function todayGoalMet() {
     const t = state.checkins[todayStr()];
     return t ? t.correct >= state.settings.dailyGoal : false;
@@ -128,18 +169,14 @@ window.App = (function () {
     save();
   }
 
-  // ---------- 路由 ----------
   function navigate(view) {
-    // 通知各模块渲染
     const evt = new CustomEvent("app:navigate", { detail: { view } });
     document.dispatchEvent(evt);
     window.scrollTo(0, 0);
   }
 
   return {
-    get state() {
-      return state;
-    },
+    get state() { return state; },
     save,
     todayStr,
     recordAnswer,
@@ -152,6 +189,10 @@ window.App = (function () {
     verifyPin,
     resetForDemo,
     navigate,
-    STORAGE_KEY,
+    // 账号
+    listProfiles,
+    getCurrentProfile,
+    switchProfile,
+    STORAGE_KEY: STORAGE_PREFIX,
   };
 })();

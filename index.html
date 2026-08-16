@@ -17,10 +17,21 @@
   <header class="app-header">
     <div class="app-title"><span class="logo">📖</span> 拼音小达人</div>
     <div class="header-right">
+      <button class="profile-btn" id="profile-btn" aria-label="切换账号"></button>
       <span class="header-star">⭐ <span id="header-stars">0</span></span>
       <span class="header-star">🏆 <span id="header-trophies">0</span></span>
     </div>
   </header>
+
+  <!-- 账号切换弹层 -->
+  <div class="profile-sheet" id="profile-sheet" hidden>
+    <div class="profile-sheet-mask" data-close="1"></div>
+    <div class="profile-sheet-body">
+      <div class="profile-sheet-title">选择账号</div>
+      <div class="profile-list" id="profile-list"></div>
+      <button class="ghost-btn" data-close="1">取消</button>
+    </div>
+  </div>
 
   <!-- 主内容区 -->
   <main class="main" id="main"></main>
@@ -41,13 +52,13 @@
     </button>
   </nav>
 
-  <script src="js/pinyin-data.js?v=8"></script>
-  <script src="js/tts.js?v=8"></script>
-  <script src="js/app.js?v=8"></script>
-  <script src="js/learn.js?v=8"></script>
-  <script src="js/practice.js?v=8"></script>
-  <script src="js/checkin.js?v=8"></script>
-  <script src="js/parents.js?v=8"></script>
+  <script src="js/pinyin-data.js?v=9"></script>
+  <script src="js/tts.js?v=9"></script>
+  <script src="js/app.js?v=9"></script>
+  <script src="js/learn.js?v=9"></script>
+  <script src="js/practice.js?v=9"></script>
+  <script src="js/checkin.js?v=9"></script>
+  <script src="js/parents.js?v=9"></script>
   <script>
     // 应用启动：路由 + 渲染
     const main = document.getElementById("main");
@@ -57,6 +68,11 @@
     function renderHeader() {
       document.getElementById("header-stars").textContent = App.state.stars;
       document.getElementById("header-trophies").textContent = App.state.trophies;
+      const p = App.getCurrentProfile();
+      const btn = document.getElementById("profile-btn");
+      btn.innerHTML = `${p.icon} ${p.label} <span class="chev">▾</span>`;
+      btn.classList.toggle("is-test", p.id === "test");
+      document.body.classList.toggle("profile-test", p.id === "test");
     }
 
     function renderView(view) {
@@ -84,6 +100,32 @@
     navItems.forEach((n) => {
       n.addEventListener("click", () => renderView(n.dataset.view));
     });
+
+    // ---------- 账号切换 UI ----------
+    const sheet = document.getElementById("profile-sheet");
+    const profileList = document.getElementById("profile-list");
+    function openProfileSheet() {
+      const cur = App.getCurrentProfile().id;
+      profileList.innerHTML = App.listProfiles().map((p) => `
+        <button class="profile-item ${p.id === cur ? "current" : ""}" data-id="${p.id}">
+          <span class="profile-icon">${p.icon}</span>
+          <span class="profile-label">${p.label}${p.id === "test" ? "<small>数据独立,不影响正式记录</small>" : "<small>日常学习记录</small>"}</span>
+          ${p.id === cur ? '<span class="profile-current">当前</span>' : ""}
+        </button>
+      `).join("");
+      sheet.hidden = false;
+    }
+    function closeProfileSheet() { sheet.hidden = true; }
+    document.getElementById("profile-btn").addEventListener("click", openProfileSheet);
+    sheet.addEventListener("click", (e) => {
+      if (e.target.dataset.close) return closeProfileSheet();
+      const item = e.target.closest(".profile-item");
+      if (item) {
+        App.switchProfile(item.dataset.id);
+        closeProfileSheet();
+      }
+    });
+    document.addEventListener("app:profile-changed", () => renderView(currentView));
 
     // 初始渲染
     renderView("learn");
