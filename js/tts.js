@@ -79,13 +79,40 @@ window.PinyinTTS = (function () {
     return a;
   }
 
+  // 全局播放状态:切题时用来打断上一次尚未播完的音频
+  let _currentAudio = null;
+  let _sequenceToken = 0; // 每次开始新序列 +1;链条中途检测到 token 变化就 abort
+
+  // 停掉一切当前正在发声的东西(MP3 + speechSynthesis)
+  function stopAll() {
+    if (_currentAudio) {
+      try { _currentAudio.pause(); _currentAudio.currentTime = 0; } catch (e) {}
+      _currentAudio = null;
+    }
+    if ("speechSynthesis" in window) {
+      try { speechSynthesis.cancel(); } catch (e) {}
+    }
+    // 让所有在飞的 playSequence 链感知到 token 变化,提前退出
+    _sequenceToken++;
+  }
+
   // 播放单个 MP3;失败时 reject
   function playMp3(sound) {
     return new Promise((resolve, reject) => {
+      // 关键:先停掉上一个正在播的
+      if (_currentAudio && _currentAudio !== getAudio(sound)) {
+        try { _currentAudio.pause(); _currentAudio.currentTime = 0; } catch (e) {}
+      }
       const a = getAudio(sound);
+      _currentAudio = a;
       a.currentTime = 0;
-      const done = () => { a.removeEventListener("ended", done); a.removeEventListener("error", fail); resolve(); };
-      const fail = (e) => { a.removeEventListener("ended", done); a.removeEventListener("error", fail); reject(e); };
+      const cleanup = () => {
+        a.removeEventListener("ended", done);
+        a.removeEventListener("error", fail);
+        if (_currentAudio === a) _currentAudio = null;
+      };
+      const done = () => { cleanup(); resolve(); };
+      const fail = (e) => { cleanup(); reject(e); };
       a.addEventListener("ended", done, { once: true });
       a.addEventListener("error", fail, { once: true });
       const p = a.play();
@@ -100,16 +127,19 @@ window.PinyinTTS = (function () {
 
   // 顺序播放多个音节(声母呼读→韵母带调→完整字):MP3 优先,失败逐个 fallback
   // 段间 gap 用 setTimeout 控制,避免 iOS 上多个 audio 排队被吞
+  // 中途若 stopAll() 被调用(_sequenceToken 变化),链条会提前退出
   function playSequence(items, rate = 1.0, gap = 120) {
-    // items: [{ sound, han }]
+    stopAll(); // 每次新序列开始前先把旧的停掉
+    const myToken = _sequenceToken;
+    const alive = () => myToken === _sequenceToken;
     let chain = Promise.resolve();
     items.forEach((item, i) => {
-      chain = chain.then(() => playSyllableWithFallback(item.sound, item.han, rate));
+      chain = chain.then(() => { if (!alive()) return; return playSyllableWithFallback(item.sound, item.han, rate); });
       if (i < items.length - 1) {
-        chain = chain.then(() => new Promise((r) => setTimeout(r, gap)));
+        chain = chain.then(() => new Promise((r) => setTimeout(r, gap))).then(() => { if (!alive()) throw new Error("cancelled"); });
       }
     });
-    return chain;
+    return chain.catch((e) => { if (e && e.message !== "cancelled") throw e; });
   }
 
   // ============ Web Speech API 兜底 ============
@@ -207,6 +237,7 @@ window.PinyinTTS = (function () {
   // ============ 对外 API ============
   // 直接播一个汉字音节(单音):优先 MP3,失败读汉字
   function speak(text, rate = 0.8, onend) {
+    stopAll();
     // 如果 text 是 sound(如 ba1),直接播 MP3
     if (/^[a-züv]+[1-5]?$/i.test(text)) {
       return playSyllableWithFallback(text, null, rate).then(() => onend && onend());
@@ -236,6 +267,7 @@ window.PinyinTTS = (function () {
 
   // 只播完整字单段;练习/错题场景用,不做拼读分段
   function speakChar(char, sound, rate = 1.0) {
+    stopAll(); // 打断上一次未播完的音频
     return playSyllableWithFallback(sound, char, rate);
   }
 
@@ -305,5 +337,5 @@ window.PinyinTTS = (function () {
 
   init();
 
-  return { speak, speakPinyin, spellWord, speakChar, supported, init, showDebug: showDebugBadge, hideDebug: hideDebugBadge };
+  return { speak, speakPinyin, spellWord, speakChar, stop: stopAll, supported, init, showDebug: showDebugBadge, hideDebug: hideDebugBadge };
 })();

@@ -59,14 +59,14 @@
     </button>
   </nav>
 
-  <script src="js/pinyin-data.js?v=16"></script>
-  <script src="js/tts.js?v=16"></script>
-  <script src="js/app.js?v=16"></script>
-  <script src="js/learn.js?v=16"></script>
-  <script src="js/practice.js?v=16"></script>
-  <script src="js/checkin.js?v=16"></script>
-  <script src="js/parents.js?v=16"></script>
-  <script src="js/mistakes.js?v=16"></script>
+  <script src="js/pinyin-data.js?v=17"></script>
+  <script src="js/tts.js?v=17"></script>
+  <script src="js/app.js?v=17"></script>
+  <script src="js/learn.js?v=17"></script>
+  <script src="js/practice.js?v=17"></script>
+  <script src="js/checkin.js?v=17"></script>
+  <script src="js/parents.js?v=17"></script>
+  <script src="js/mistakes.js?v=17"></script>
   <script>
     // 应用启动：路由 + 渲染
     const main = document.getElementById("main");
@@ -102,6 +102,8 @@
     window.renderAppHeader = renderHeader;
 
     function renderView(view) {
+      // 切视图先停掉可能还在播的音频
+      if (window.PinyinTTS && PinyinTTS.stop) PinyinTTS.stop();
       currentView = view;
       navItems.forEach((n) => n.classList.toggle("active", n.dataset.view === view));
       switch (view) {

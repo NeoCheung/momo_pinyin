@@ -82,6 +82,8 @@ window.Practice = (function () {
 
   // ---------- 渲染题目 ----------
   function nextQuestion(container) {
+    // 立即停掉上一题可能还在播的发音
+    if (PinyinTTS.stop) PinyinTTS.stop();
     selectedBtn = null;
     const area = container.querySelector("#practice-question");
     const q = (current = makeQuestion());

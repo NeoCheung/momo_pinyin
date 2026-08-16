@@ -74,6 +74,8 @@ window.Mistakes = (function () {
   // ---------- 改错模式 ----------
   function renderReview(container) {
     if (!queue.length) return renderDone(container);
+    // 立即停掉上一题可能还在播的发音
+    if (PinyinTTS.stop) PinyinTTS.stop();
     selectedBtn = null;
     const current = queue[0];
     const q = buildQuestion(current);
