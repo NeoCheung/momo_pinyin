@@ -4,15 +4,15 @@
 window.PINYIN_DATA = (function () {
   // 声母
   const INITIALS = [
-    { pinyin: "b", text: "b", example: "爸 bà", sound: "ba" },
-    { pinyin: "p", text: "p", example: "婆 pó", sound: "po" },
-    { pinyin: "m", text: "m", example: "妈 mā", sound: "ma" },
-    { pinyin: "f", text: "f", example: "发 fā", sound: "fa" },
-    { pinyin: "d", text: "d", example: "大 dà", sound: "da" },
-    { pinyin: "t", text: "t", example: "他 tā", sound: "ta" },
+    { pinyin: "b", text: "b", example: "爸 bà", sound: "ba4" },
+    { pinyin: "p", text: "p", example: "婆 pó", sound: "po2" },
+    { pinyin: "m", text: "m", example: "妈 mā", sound: "ma1" },
+    { pinyin: "f", text: "f", example: "发 fā", sound: "fa1" },
+    { pinyin: "d", text: "d", example: "大 dà", sound: "da4" },
+    { pinyin: "t", text: "t", example: "他 tā", sound: "ta1" },
     { pinyin: "n", text: "n", example: "你 nǐ", sound: "ni3" },
-    { pinyin: "l", text: "l", example: "乐 lè", sound: "le" },
-    { pinyin: "g", text: "g", example: "哥 gē", sound: "ge" },
+    { pinyin: "l", text: "l", example: "乐 lè", sound: "le4" },
+    { pinyin: "g", text: "g", example: "哥 gē", sound: "ge1" },
     { pinyin: "k", text: "k", example: "卡 kǎ", sound: "ka3" },
     { pinyin: "h", text: "h", example: "花 huā", sound: "hua1" },
     { pinyin: "j", text: "j", example: "鸡 jī", sound: "ji1" },

@@ -1,8 +1,10 @@
 // sw.js — service worker：离线缓存
-// 策略：cache-first（优先缓存）+ 版本号控制。
-// 重要：修改任何静态资源后，务必把 CACHE 版本号 +1（如 v1 → v2），
-// 这样部署后 service worker 重新安装会清掉旧缓存并拉取新资源。
-const CACHE = "pinyin-tool-v12";
+// 策略：
+//   1) install 时预缓存 ASSETS(代码/CSS/HTML,小体积必备资源)
+//   2) fetch 时对所有同源请求做 cache-first + 运行时按需缓存
+//      → audio/pinyin/*.mp3 采用这条路径,只有用户点过的音节才落缓存,首次访问不下 30MB
+//   3) 修改静态资源后 CACHE 版本 +1,重装 SW 会清旧缓存
+const CACHE = "pinyin-tool-v13";
 const ASSETS = [
   "./",
   "./index.html",

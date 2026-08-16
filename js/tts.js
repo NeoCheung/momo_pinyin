@@ -1,69 +1,123 @@
-// tts.js — 发音封装（Web Speech API，普通话）
-// 使用建议:请用 Safari 打开。Chrome for macOS 存在中文 voice 绑定 bug,
-// 会把 zh-CN 语音渲染成粤语,与本代码逻辑无关。
+// tts.js — 发音封装
+// 主流:MP3 音频库(audio/pinyin/*.mp3, 音源 agj/mp3-chinese-pinyin-sound, Unlicense)
+// 备用:Web Speech API(speechSynthesis)——找不到 MP3 或音频报错时兜底
 
 window.PinyinTTS = (function () {
   // ============ 拼音拼读知识表 ============
+  // 声母呼读音 → { han: 汉字, sound: 拼音 sound }
+  // sound 用于放对应 MP3;han 用于 speechSynthesis 兜底
   const INITIAL_HU = {
-    b: "玻", p: "坡", m: "摸", f: "佛",
-    d: "得", t: "特", n: "讷", l: "勒",
-    g: "哥", k: "科", h: "喝",
-    j: "基", q: "欺", x: "希",
-    zh: "知", ch: "吃", sh: "诗", r: "日",
-    z: "资", c: "雌", s: "思",
-    y: "衣", w: "乌",
+    b: { han: "玻", sound: "bo1" }, p: { han: "坡", sound: "po1" }, m: { han: "摸", sound: "mo1" }, f: { han: "佛", sound: "fo1" },
+    d: { han: "得", sound: "de1" }, t: { han: "特", sound: "te1" }, n: { han: "讷", sound: "ne4" }, l: { han: "勒", sound: "le4" },
+    g: { han: "哥", sound: "ge1" }, k: { han: "科", sound: "ke1" }, h: { han: "喝", sound: "he1" },
+    j: { han: "基", sound: "ji1" }, q: { han: "欺", sound: "qi1" }, x: { han: "希", sound: "xi1" },
+    zh: { han: "知", sound: "zhi1" }, ch: { han: "吃", sound: "chi1" }, sh: { han: "诗", sound: "shi1" }, r: { han: "日", sound: "ri4" },
+    z: { han: "资", sound: "zi1" }, c: { han: "雌", sound: "ci1" }, s: { han: "思", sound: "si1" },
+    y: { han: "衣", sound: "yi1" }, w: { han: "乌", sound: "wu1" },
   };
-  // 复合声母优先,避免把 zh 误拆成 z+h
   const INITIAL_ORDER = ["zh", "ch", "sh", "b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j", "q", "x", "r", "z", "c", "s", "y", "w"];
 
+  // 韵母带声调 → { han, sound } 用于拼读时播放"啊/衣/乌"等标准音
+  // sound 直接用带声调的音节文件;音库缺失时(如 o1/eng1)fallback 用近似音
   const FINAL_TONE_HAN = {
-    a: { 1: "啊", 2: "啊", 3: "啊", 4: "啊" },
-    o: { 1: "喔", 2: "哦", 3: "哦", 4: "哦" },
-    e: { 1: "阿", 2: "鹅", 3: "恶", 4: "饿" },
-    i: { 1: "衣", 2: "姨", 3: "椅", 4: "亿" },
-    u: { 1: "乌", 2: "无", 3: "五", 4: "物" },
-    ü: { 1: "迂", 2: "鱼", 3: "雨", 4: "玉" },
-    ai: { 1: "哀", 2: "挨", 3: "矮", 4: "爱" },
-    ei: { 1: "诶", 2: "诶", 3: "诶", 4: "诶" },
-    ui: { 1: "威", 2: "围", 3: "委", 4: "喂" },
-    ao: { 1: "熬", 2: "熬", 3: "袄", 4: "奥" },
-    ou: { 1: "欧", 2: "藕", 3: "藕", 4: "偶" },
-    iu: { 1: "优", 2: "游", 3: "有", 4: "又" },
-    ie: { 1: "耶", 2: "爷", 3: "也", 4: "夜" },
-    üe: { 1: "约", 2: "岳", 3: "月", 4: "悦" },
-    ua: { 1: "哇", 2: "娃", 3: "瓦", 4: "袜" },
-    uo: { 1: "窝", 2: "我", 3: "我", 4: "握" },
-    ia: { 1: "呀", 2: "牙", 3: "雅", 4: "亚" },
-    iao: { 1: "腰", 2: "摇", 3: "咬", 4: "要" },
-    an: { 1: "安", 2: "俺", 3: "俺", 4: "暗" },
-    en: { 1: "恩", 2: "嗯", 3: "嗯", 4: "嗯" },
-    in: { 1: "音", 2: "银", 3: "引", 4: "印" },
-    un: { 1: "温", 2: "文", 3: "吻", 4: "问" },
-    ün: { 1: "晕", 2: "云", 3: "允", 4: "运" },
-    üan: { 1: "冤", 2: "元", 3: "远", 4: "愿" },
-    ang: { 1: "肮", 2: "昂", 3: "昂", 4: "盎" },
-    eng: { 1: "鞥", 2: "嗯", 3: "嗯", 4: "嗯" },
-    ing: { 1: "英", 2: "迎", 3: "影", 4: "应" },
-    ong: { 1: "翁", 2: "嗡", 3: "翁", 4: "瓮" },
-    uan: { 1: "弯", 2: "完", 3: "晚", 4: "万" },
-    uang: { 1: "汪", 2: "王", 3: "网", 4: "望" },
-    iong: { 1: "雍", 2: "庸", 3: "永", 4: "用" },
-    ian: { 1: "烟", 2: "盐", 3: "眼", 4: "燕" },
-    iang: { 1: "央", 2: "羊", 3: "养", 4: "样" },
-    uai: { 1: "歪", 2: "崴", 3: "崴", 4: "外" },
+    a: { 1: { han: "啊", sound: "a1" }, 2: { han: "啊", sound: "a2" }, 3: { han: "啊", sound: "a3" }, 4: { han: "啊", sound: "a4" } },
+    o: { 1: { han: "喔", sound: "wo1" }, 2: { han: "哦", sound: "wo2" }, 3: { han: "哦", sound: "wo3" }, 4: { han: "哦", sound: "wo4" } },
+    e: { 1: { han: "阿", sound: "e1" }, 2: { han: "鹅", sound: "e2" }, 3: { han: "恶", sound: "e3" }, 4: { han: "饿", sound: "e4" } },
+    i: { 1: { han: "衣", sound: "yi1" }, 2: { han: "姨", sound: "yi2" }, 3: { han: "椅", sound: "yi3" }, 4: { han: "亿", sound: "yi4" } },
+    u: { 1: { han: "乌", sound: "wu1" }, 2: { han: "无", sound: "wu2" }, 3: { han: "五", sound: "wu3" }, 4: { han: "物", sound: "wu4" } },
+    ü: { 1: { han: "迂", sound: "yu1" }, 2: { han: "鱼", sound: "yu2" }, 3: { han: "雨", sound: "yu3" }, 4: { han: "玉", sound: "yu4" } },
+    ai: { 1: { han: "哀", sound: "ai1" }, 2: { han: "挨", sound: "ai2" }, 3: { han: "矮", sound: "ai3" }, 4: { han: "爱", sound: "ai4" } },
+    ei: { 1: { han: "诶", sound: "ei1" }, 2: { han: "诶", sound: "ei2" }, 3: { han: "诶", sound: "ei3" }, 4: { han: "诶", sound: "ei4" } },
+    ui: { 1: { han: "威", sound: "wei1" }, 2: { han: "围", sound: "wei2" }, 3: { han: "委", sound: "wei3" }, 4: { han: "喂", sound: "wei4" } },
+    ao: { 1: { han: "熬", sound: "ao1" }, 2: { han: "熬", sound: "ao2" }, 3: { han: "袄", sound: "ao3" }, 4: { han: "奥", sound: "ao4" } },
+    ou: { 1: { han: "欧", sound: "ou1" }, 2: { han: "藕", sound: "ou2" }, 3: { han: "藕", sound: "ou3" }, 4: { han: "偶", sound: "ou4" } },
+    iu: { 1: { han: "优", sound: "you1" }, 2: { han: "游", sound: "you2" }, 3: { han: "有", sound: "you3" }, 4: { han: "又", sound: "you4" } },
+    ie: { 1: { han: "耶", sound: "ye1" }, 2: { han: "爷", sound: "ye2" }, 3: { han: "也", sound: "ye3" }, 4: { han: "夜", sound: "ye4" } },
+    üe: { 1: { han: "约", sound: "yue1" }, 2: { han: "岳", sound: "yue2" }, 3: { han: "月", sound: "yue3" }, 4: { han: "悦", sound: "yue4" } },
+    ua: { 1: { han: "哇", sound: "wa1" }, 2: { han: "娃", sound: "wa2" }, 3: { han: "瓦", sound: "wa3" }, 4: { han: "袜", sound: "wa4" } },
+    uo: { 1: { han: "窝", sound: "wo1" }, 2: { han: "我", sound: "wo2" }, 3: { han: "我", sound: "wo3" }, 4: { han: "握", sound: "wo4" } },
+    ia: { 1: { han: "呀", sound: "ya1" }, 2: { han: "牙", sound: "ya2" }, 3: { han: "雅", sound: "ya3" }, 4: { han: "亚", sound: "ya4" } },
+    iao: { 1: { han: "腰", sound: "yao1" }, 2: { han: "摇", sound: "yao2" }, 3: { han: "咬", sound: "yao3" }, 4: { han: "要", sound: "yao4" } },
+    an: { 1: { han: "安", sound: "an1" }, 2: { han: "俺", sound: "an2" }, 3: { han: "俺", sound: "an3" }, 4: { han: "暗", sound: "an4" } },
+    en: { 1: { han: "恩", sound: "en1" }, 2: { han: "嗯", sound: "en2" }, 3: { han: "嗯", sound: "en3" }, 4: { han: "嗯", sound: "en4" } },
+    in: { 1: { han: "音", sound: "yin1" }, 2: { han: "银", sound: "yin2" }, 3: { han: "引", sound: "yin3" }, 4: { han: "印", sound: "yin4" } },
+    un: { 1: { han: "温", sound: "wen1" }, 2: { han: "文", sound: "wen2" }, 3: { han: "吻", sound: "wen3" }, 4: { han: "问", sound: "wen4" } },
+    ün: { 1: { han: "晕", sound: "yun1" }, 2: { han: "云", sound: "yun2" }, 3: { han: "允", sound: "yun3" }, 4: { han: "运", sound: "yun4" } },
+    üan: { 1: { han: "冤", sound: "yuan1" }, 2: { han: "元", sound: "yuan2" }, 3: { han: "远", sound: "yuan3" }, 4: { han: "愿", sound: "yuan4" } },
+    ang: { 1: { han: "肮", sound: "ang1" }, 2: { han: "昂", sound: "ang2" }, 3: { han: "昂", sound: "ang3" }, 4: { han: "盎", sound: "ang4" } },
+    eng: { 1: { han: "鞥", sound: "weng1" }, 2: { han: "嗯", sound: "weng2" }, 3: { han: "嗯", sound: "weng3" }, 4: { han: "嗯", sound: "weng4" } },
+    ing: { 1: { han: "英", sound: "ying1" }, 2: { han: "迎", sound: "ying2" }, 3: { han: "影", sound: "ying3" }, 4: { han: "应", sound: "ying4" } },
+    ong: { 1: { han: "翁", sound: "weng1" }, 2: { han: "嗡", sound: "weng2" }, 3: { han: "翁", sound: "weng3" }, 4: { han: "瓮", sound: "weng4" } },
+    uan: { 1: { han: "弯", sound: "wan1" }, 2: { han: "完", sound: "wan2" }, 3: { han: "晚", sound: "wan3" }, 4: { han: "万", sound: "wan4" } },
+    uang: { 1: { han: "汪", sound: "wang1" }, 2: { han: "王", sound: "wang2" }, 3: { han: "网", sound: "wang3" }, 4: { han: "望", sound: "wang4" } },
+    iong: { 1: { han: "雍", sound: "yong1" }, 2: { han: "庸", sound: "yong2" }, 3: { han: "永", sound: "yong3" }, 4: { han: "用", sound: "yong4" } },
+    ian: { 1: { han: "烟", sound: "yan1" }, 2: { han: "盐", sound: "yan2" }, 3: { han: "眼", sound: "yan3" }, 4: { han: "燕", sound: "yan4" } },
+    iang: { 1: { han: "央", sound: "yang1" }, 2: { han: "羊", sound: "yang2" }, 3: { han: "养", sound: "yang3" }, 4: { han: "样", sound: "yang4" } },
+    uai: { 1: { han: "歪", sound: "wai1" }, 2: { han: "崴", sound: "wai2" }, 3: { han: "崴", sound: "wai3" }, 4: { han: "外", sound: "wai4" } },
   };
 
-  // ============ 语音选择 ============
-  // 只做一件事:找一个 zh-CN 的普通话语音。Safari/iOS 会自动挑到婷婷,不需要黑名单。
+  // ============ MP3 播放 ============
+  const AUDIO_BASE = "audio/pinyin/";
+  // 把项目 sound(如 lv3) 映射到音库文件名(luu3):v→uu,ü→uu
+  function soundToFile(sound) {
+    return String(sound).replace(/ü/g, "uu").replace(/v/g, "uu");
+  }
+  function mp3Url(sound) {
+    return `${AUDIO_BASE}${soundToFile(sound)}.mp3`;
+  }
+
+  // 缓存 Audio 对象,减少重复创建
+  const audioCache = new Map();
+  function getAudio(sound) {
+    const url = mp3Url(sound);
+    let a = audioCache.get(url);
+    if (!a) {
+      a = new Audio(url);
+      a.preload = "auto";
+      audioCache.set(url, a);
+    }
+    return a;
+  }
+
+  // 播放单个 MP3;失败时 reject
+  function playMp3(sound) {
+    return new Promise((resolve, reject) => {
+      const a = getAudio(sound);
+      a.currentTime = 0;
+      const done = () => { a.removeEventListener("ended", done); a.removeEventListener("error", fail); resolve(); };
+      const fail = (e) => { a.removeEventListener("ended", done); a.removeEventListener("error", fail); reject(e); };
+      a.addEventListener("ended", done, { once: true });
+      a.addEventListener("error", fail, { once: true });
+      const p = a.play();
+      if (p && p.catch) p.catch(fail);
+    });
+  }
+
+  // 播放一段 MP3,失败自动回退到 speechSynthesis 读汉字
+  function playSyllableWithFallback(sound, han, rate) {
+    return playMp3(sound).catch(() => speakSingle(han || sound, rate));
+  }
+
+  // 顺序播放多个音节(声母呼读→韵母带调→完整字):MP3 优先,失败逐个 fallback
+  // 段间 gap 用 setTimeout 控制,避免 iOS 上多个 audio 排队被吞
+  function playSequence(items, rate = 1.0, gap = 120) {
+    // items: [{ sound, han }]
+    let chain = Promise.resolve();
+    items.forEach((item, i) => {
+      chain = chain.then(() => playSyllableWithFallback(item.sound, item.han, rate));
+      if (i < items.length - 1) {
+        chain = chain.then(() => new Promise((r) => setTimeout(r, gap)));
+      }
+    });
+    return chain;
+  }
+
+  // ============ Web Speech API 兜底 ============
   function pickZhVoice() {
     const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
     return voices.find((v) => (v.lang || "").toLowerCase().startsWith("zh-cn")) || null;
   }
 
-  // 页面右下角显示当前选中的语音,默认关闭。开启方式:
-  //   1) URL 加 ?debug=tts        —— 例:https://...github.io?debug=tts
-  //   2) Console 执行 PinyinTTS.showDebug()  —— 手动打开
-  //   3) 再次执行 PinyinTTS.hideDebug()      —— 关闭
   let __debugOn = false;
   function debugEnabledByURL() {
     try {
@@ -77,7 +131,7 @@ window.PinyinTTS = (function () {
     const el = document.createElement("div");
     el.id = "__tts_badge";
     el.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:99999;padding:6px 10px;background:rgba(0,0,0,.75);color:#fff;font:12px/1.4 -apple-system,sans-serif;border-radius:8px;max-width:70vw;pointer-events:auto;cursor:pointer;";
-    el.textContent = "TTS: (等待语音就绪)";
+    el.textContent = "TTS: (等待)";
     el.title = "点击关闭";
     el.addEventListener("click", hideDebugBadge);
     if (document.body) document.body.appendChild(el);
@@ -92,40 +146,43 @@ window.PinyinTTS = (function () {
   function updateDebugBadge() {
     const el = document.getElementById("__tts_badge");
     if (!el) return;
-    const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-    const zhCN = voices.filter((v) => (v.lang || "").toLowerCase().startsWith("zh-cn"));
-    const zhHK = voices.filter((v) => (v.lang || "").toLowerCase().startsWith("zh-hk"));
-    const picked = pickZhVoice();
-    if (picked) {
-      el.textContent = `TTS ✓ ${picked.name} [${picked.lang}] | zh-CN:${zhCN.length} zh-HK:${zhHK.length}`;
-      el.style.background = "rgba(20,120,40,.85)";
-    } else if (zhHK.length && !zhCN.length) {
-      el.textContent = `⚠️ 未装普通话!仅粤语 zh-HK×${zhHK.length}。设置→辅助功能→朗读内容→嗓音下载"婷婷"`;
-      el.style.background = "rgba(180,30,30,.9)";
-    } else {
-      el.textContent = `⚠️ 未找到 zh-CN 语音 (共 ${voices.length} 个)`;
-      el.style.background = "rgba(180,30,30,.9)";
-    }
+    el.textContent = `MP3 音库(fallback: ${(pickZhVoice() || {}).name || "浏览器默认"})`;
+    el.style.background = "rgba(20,120,40,.85)";
+  }
+
+  function speakSingle(text, rate = 0.8, onend) {
+    return new Promise((resolve) => {
+      if (!("speechSynthesis" in window)) {
+        if (onend) onend();
+        return resolve();
+      }
+      init();
+      waitForVoices(() => {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "zh-CN";
+        u.rate = rate;
+        u.pitch = 1;
+        const v = pickZhVoice();
+        if (v) u.voice = v;
+        const done = () => { if (onend) onend(); resolve(); };
+        u.onend = done;
+        u.onerror = done;
+        speechSynthesis.speak(u);
+      });
+    });
   }
 
   function init() {
     if (!("speechSynthesis" in window)) return;
     speechSynthesis.getVoices();
-    // 只在 URL 显式要求时才自动挂徽章
     if (debugEnabledByURL()) {
       const attach = () => showDebugBadge();
       if (document.body) attach();
       else document.addEventListener("DOMContentLoaded", attach, { once: true });
     }
-    if (!window.__voiceInitBound) {
-      window.speechSynthesis.onvoiceschanged = function () {
-        if (__debugOn) updateDebugBadge();
-      };
-      window.__voiceInitBound = true;
-    }
   }
 
-  // iOS Safari 首次 getVoices() 可能为空,等 voiceschanged 或超时兜底
   function waitForVoices(cb) {
     if (!("speechSynthesis" in window)) return cb();
     if (speechSynthesis.getVoices().length) return cb();
@@ -140,7 +197,6 @@ window.PinyinTTS = (function () {
     base = String(base).replace(/[0-9]/g, "").replace(/v/g, "ü");
     for (const ini of INITIAL_ORDER) {
       if (base.startsWith(ini) && base.length > ini.length) {
-        // y/w 开头视为整体认读,零声母整体读
         if (ini === "y" || ini === "w") return { initial: null, final: base };
         return { initial: ini, final: base.slice(ini.length) };
       }
@@ -148,134 +204,92 @@ window.PinyinTTS = (function () {
     return { initial: null, final: base };
   }
 
+  // ============ 对外 API ============
+  // 直接播一个汉字音节(单音):优先 MP3,失败读汉字
+  function speak(text, rate = 0.8, onend) {
+    // 如果 text 是 sound(如 ba1),直接播 MP3
+    if (/^[a-züv]+[1-5]?$/i.test(text)) {
+      return playSyllableWithFallback(text, null, rate).then(() => onend && onend());
+    }
+    // 否则走 TTS
+    return speakSingle(text, rate, onend);
+  }
+
+  // 拼读一个汉字音节:声母呼读音 → 韵母带调 → 完整字(三段)
+  // 例:爸 ba1  →  bo1(玻) + a4(啊) + ba4(爸)
+  function spellWord(char, sound, rate = 1.0) {
+    const toneMatch = String(sound).match(/(\d)$/);
+    const tone = toneMatch ? Number(toneMatch[1]) : 1;
+    const { initial, final } = splitSyllable(sound);
+
+    const items = [];
+    if (initial && INITIAL_HU[initial]) items.push(INITIAL_HU[initial]);
+    if (final) {
+      const fh = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
+      if (fh) items.push(fh);
+    }
+    // 完整字:sound 就是原样,han 就是 char
+    if (!items.some((x) => x.sound === sound)) items.push({ sound, han: char });
+    return playSequence(items, rate);
+  }
+
+  // 学习卡片朗读:
+  //   initial → 声母呼读音 + 例字
+  //   final   → 韵母带调音 + 例字
+  //   whole   → y/w 呼读音 + 剩余韵母字母名 + 完整例字
+  function speakPinyin(sound, type, example, rate = 1.0) {
+    const exHan = pickFirstHan(example);
+    const exSound = pickSoundFromExample(example) || sound;
+    const toneMatch = String(sound).match(/(\d)$/);
+    const tone = toneMatch ? Number(toneMatch[1]) : 1;
+    const { initial, final } = splitSyllable(sound);
+
+    if (type === "initial") {
+      const hu = initial && INITIAL_HU[initial] ? INITIAL_HU[initial] : (final ? INITIAL_HU[final] : null);
+      const items = [];
+      if (hu) items.push(hu);
+      if (exHan) items.push({ sound: exSound, han: exHan });
+      return playSequence(items, rate);
+    }
+    if (type === "final") {
+      const fh = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
+      const items = [];
+      if (fh) items.push(fh); else items.push({ sound, han: final });
+      if (exHan) items.push({ sound: exSound, han: exHan });
+      return playSequence(items, rate);
+    }
+    // whole 整体认读:三段
+    const yToUmlaut = { u: "ü", ue: "üe", uan: "üan", un: "ün" };
+    const items = [];
+    let leader = null;
+    let restFinal = final;
+    if (final && final[0] === "y") {
+      leader = INITIAL_HU["y"];
+      restFinal = final.slice(1);
+      if (yToUmlaut[restFinal]) restFinal = yToUmlaut[restFinal];
+    } else if (final && final[0] === "w") {
+      leader = INITIAL_HU["w"];
+      restFinal = final.slice(1);
+    }
+    if (leader) items.push(leader);
+    if (restFinal) {
+      const fh = FINAL_TONE_HAN[restFinal] && FINAL_TONE_HAN[restFinal][1];
+      if (fh) items.push(fh);
+    }
+    if (exHan) items.push({ sound: exSound, han: exHan });
+    return playSequence(items, rate);
+  }
+
   function pickFirstHan(example) {
     if (!example) return null;
     const m = example.match(/\p{Script=Han}/u);
     return m ? m[0] : null;
   }
-
-  // ============ 核心朗读 ============
-  function makeUtterance(text, rate) {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "zh-CN";
-    u.rate = rate;
-    u.pitch = 1;
-    const v = pickZhVoice();
-    if (v) u.voice = v;
-    return u;
-  }
-
-  function speakSingle(text, rate, onend) {
-    return new Promise((resolve) => {
-      if (!("speechSynthesis" in window)) {
-        if (onend) onend();
-        return resolve();
-      }
-      init();
-      waitForVoices(() => {
-        speechSynthesis.cancel();
-        const u = makeUtterance(text, rate);
-        const done = () => { if (onend) onend(); resolve(); };
-        u.onend = done;
-        u.onerror = done;
-        speechSynthesis.speak(u);
-      });
-    });
-  }
-
-  // 用顿号把多段拼到一个 utterance:iOS 对连续短 utterance 会读串,合并更稳
-  function speakSegments(parts, rate) {
-    return speakSingle(parts.join("、"), rate);
-  }
-
-  // 拼读一个汉字音节:声母呼读音 → 韵母带调 → 完整字(三段)
-  // 例:爸 ba1  →  玻、啊、爸    妈 ma1 → 摸、啊、妈
-  // 零声母(a/o/e/yi/wu 等):走 speakPinyin(whole) 分支,不进这里
-  function spellCharacter(char, sound, rate) {
-    const toneMatch = String(sound).match(/(\d)$/);
-    const tone = toneMatch ? Number(toneMatch[1]) : 1;
-    const { initial, final } = splitSyllable(sound);
-
-    const parts = [];
-    if (initial && INITIAL_HU[initial]) parts.push(INITIAL_HU[initial]);
-    if (final) {
-      const han = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
-      if (han) parts.push(han);
-    }
-    if (!parts.includes(char)) parts.push(char);
-    return speakSegments(parts, rate);
-  }
-
-  // ============ 对外 API ============
-  function speak(text, rate = 0.8, onend) {
-    speakSingle(text, rate, onend);
-  }
-
-  function spellWord(char, sound, rate = 0.8) {
-    if (!("speechSynthesis" in window)) return Promise.resolve();
-    init();
-    return new Promise((resolve) => waitForVoices(() => resolve(spellCharacter(char, sound, rate))));
-  }
-
-  // 学习卡片朗读:三种类型都走"引导音 + [中间辅助音] + 完整例字"
-  // - 声母 initial:呼读音(如 m→摸) + 例字(如 妈)             —— 摸、妈
-  // - 韵母 final  :韵母带调音(如 a1→啊) + 例字                —— 啊、爸
-  // - 整体认读 whole:y/w 呼读音 + 剩余韵母字母名 + 完整例字   —— 衣、i、衣 / 乌、u、五 / 衣、e、爷
-  function speakPinyin(sound, type, example, rate = 0.8) {
-    if (!("speechSynthesis" in window)) return Promise.resolve();
-    init();
-    return new Promise((resolve) => waitForVoices(() => {
-      const toneMatch = String(sound).match(/(\d)$/);
-      const tone = toneMatch ? Number(toneMatch[1]) : 1;
-      const { initial, final } = splitSyllable(sound);
-      const exHan = pickFirstHan(example);
-
-      if (type === "initial") {
-        const hu = initial && INITIAL_HU[initial] ? INITIAL_HU[initial] : (final ? INITIAL_HU[final] : null);
-        const parts = [];
-        if (hu) parts.push(hu);
-        if (exHan && exHan !== hu) parts.push(exHan);
-        resolve(speakSegments(parts, rate));
-        return;
-      }
-      if (type === "final") {
-        const han = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
-        const parts = [han || final];
-        if (exHan && exHan !== han) parts.push(exHan);
-        resolve(speakSegments(parts, rate));
-        return;
-      }
-      // whole 整体认读:三段拼读
-      //   例:yi1 → 衣 (y 呼读音) + i 字母名(用一声"衣") + 衣 (例字)
-      //         yue4 → 衣 (y) + üe 字母名(用一声"约") + 月 (例字)
-      //         wu3 → 乌 (w) + u 字母名(用一声"乌") + 五 (例字)
-      // 注意:y 后面的 u/ue/uan/un 实际是 ü/üe/üan/ün(汉语拼音正字法),
-      //      读音要按 ü 系列走
-      const yToUmlaut = { u: "ü", ue: "üe", uan: "üan", un: "ün" };
-      const parts = [];
-      let leader = null;
-      let restFinal = final;
-      if (final && final[0] === "y") {
-        leader = INITIAL_HU["y"];
-        restFinal = final.slice(1);
-        if (yToUmlaut[restFinal]) restFinal = yToUmlaut[restFinal];
-      } else if (final && final[0] === "w") {
-        leader = INITIAL_HU["w"];
-        restFinal = final.slice(1);
-      }
-      if (leader) parts.push(leader);
-      if (restFinal) {
-        const key = restFinal || final;
-        const restHan = FINAL_TONE_HAN[key] && FINAL_TONE_HAN[key][1];
-        if (restHan) parts.push(restHan);
-      }
-      if (exHan && !parts.includes(exHan)) parts.push(exHan);
-      resolve(speakSegments(parts, rate));
-    }));
-  }
+  // 从 "爸 bà" 里没法直接拿数字 sound;example 里通常只有汉字+带调拼音,交给 caller 传原 sound 就够
+  function pickSoundFromExample(example) { return null; }
 
   function supported() {
-    return "speechSynthesis" in window;
+    return "speechSynthesis" in window || typeof Audio !== "undefined";
   }
 
   init();
