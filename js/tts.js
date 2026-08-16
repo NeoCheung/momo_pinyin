@@ -187,25 +187,16 @@ window.PinyinTTS = (function () {
     return speakSingle(parts.join("、"), rate);
   }
 
-  // 拼读一个汉字音节:声母呼读音 → 韵母带调 → 完整字 → 再完整读一遍
+  // 拼读一个汉字音节:声母呼读音 → 完整字
+  // 例:爸 ba1  →  玻、爸    妈 ma1 → 摸、妈
+  // 零声母(a/o/e/yi/wu 等):直接读完整字
   function spellCharacter(char, sound, rate) {
-    const toneMatch = String(sound).match(/(\d)$/);
-    const tone = toneMatch ? Number(toneMatch[1]) : 1;
-    const { initial, final } = splitSyllable(sound);
-
+    const { initial } = splitSyllable(sound);
     const parts = [];
     if (initial && INITIAL_HU[initial]) parts.push(INITIAL_HU[initial]);
-    if (final) {
-      const han = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
-      if (han) parts.push(han);
-    }
-    if (final && !parts.includes(char)) parts.push(char);
-
-    const processParts = parts.slice(0, -1);
-    const speakProcess = processParts.length ? speakSegments(processParts, rate) : Promise.resolve();
-    return speakProcess.then(
-      () => new Promise((r) => setTimeout(() => r(speakSingle(char, rate)), 200))
-    );
+    // 完整字放最后
+    if (!parts.includes(char)) parts.push(char);
+    return speakSegments(parts, rate);
   }
 
   // ============ 对外 API ============
@@ -219,6 +210,10 @@ window.PinyinTTS = (function () {
     return new Promise((resolve) => waitForVoices(() => resolve(spellCharacter(char, sound, rate))));
   }
 
+  // 学习卡片朗读:统一"引导音 + 完整例字"范式,和 spellCharacter 一致
+  // - 声母 initial:呼读音(如 m→摸) + 例字(如 妈)   —— m、妈
+  // - 韵母 final  :韵母带调音(如 a1→啊) + 例字      —— 啊、爸(例字若与前段相同则省)
+  // - 整体认读 whole:直接读完整例字
   function speakPinyin(sound, type, example, rate = 0.8) {
     if (!("speechSynthesis" in window)) return Promise.resolve();
     init();
@@ -226,12 +221,12 @@ window.PinyinTTS = (function () {
       const toneMatch = String(sound).match(/(\d)$/);
       const tone = toneMatch ? Number(toneMatch[1]) : 1;
       const { initial, final } = splitSyllable(sound);
+      const exHan = pickFirstHan(example);
 
       if (type === "initial") {
         const hu = initial && INITIAL_HU[initial] ? INITIAL_HU[initial] : (final ? INITIAL_HU[final] : null);
         const parts = [];
         if (hu) parts.push(hu);
-        const exHan = pickFirstHan(example);
         if (exHan && exHan !== hu) parts.push(exHan);
         resolve(speakSegments(parts, rate));
         return;
@@ -239,13 +234,12 @@ window.PinyinTTS = (function () {
       if (type === "final") {
         const han = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
         const parts = [han || final];
-        const exHan = pickFirstHan(example);
         if (exHan && exHan !== han) parts.push(exHan);
         resolve(speakSegments(parts, rate));
         return;
       }
-      // whole:读完整音节(例字)
-      resolve(speakSingle(pickFirstHan(example) || final, rate));
+      // whole:整体认读音节,读完整例字即可
+      resolve(speakSingle(exHan || final, rate));
     }));
   }
 

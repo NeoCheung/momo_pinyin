@@ -135,6 +135,8 @@ window.App = (function () {
       state.trophies++;
     }
     save();
+    // 通知 UI 刷新顶栏(星星/奖杯/错题 badge)
+    document.dispatchEvent(new CustomEvent("app:state-changed"));
   }
 
   // ---------- 错题本 ----------
@@ -175,6 +177,7 @@ window.App = (function () {
   function clearAllMistakes() {
     state.mistakes = {};
     save();
+    document.dispatchEvent(new CustomEvent("app:state-changed"));
   }
 
   function todayCheckin() {

@@ -59,14 +59,14 @@
     </button>
   </nav>
 
-  <script src="js/pinyin-data.js?v=10"></script>
-  <script src="js/tts.js?v=10"></script>
-  <script src="js/app.js?v=10"></script>
-  <script src="js/learn.js?v=10"></script>
-  <script src="js/practice.js?v=10"></script>
-  <script src="js/checkin.js?v=10"></script>
-  <script src="js/parents.js?v=10"></script>
-  <script src="js/mistakes.js?v=10"></script>
+  <script src="js/pinyin-data.js?v=11"></script>
+  <script src="js/tts.js?v=11"></script>
+  <script src="js/app.js?v=11"></script>
+  <script src="js/learn.js?v=11"></script>
+  <script src="js/practice.js?v=11"></script>
+  <script src="js/checkin.js?v=11"></script>
+  <script src="js/parents.js?v=11"></script>
+  <script src="js/mistakes.js?v=11"></script>
   <script>
     // 应用启动：路由 + 渲染
     const main = document.getElementById("main");
@@ -152,6 +152,8 @@
       }
     });
     document.addEventListener("app:profile-changed", () => renderView(currentView));
+    // 任意状态变化(如答题)后刷新顶栏 badge / 星星 / 奖杯
+    document.addEventListener("app:state-changed", renderHeader);
 
     // 初始渲染
     renderView("learn");

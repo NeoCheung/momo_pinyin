@@ -180,9 +180,8 @@ window.Mistakes = (function () {
 
   function handleAnswer(container, btn, correct, q, mistakeItem) {
     // 无论对错都调用 App.recordAnswer:答对会自动从 mistakes 里删,答错会 count++
+    // App.recordAnswer 会 dispatch app:state-changed,顶栏 badge/星星自动刷新
     App.recordAnswer(correct, q.type, q.q.sound, q.q.pinyin);
-    document.getElementById("header-stars").textContent = App.state.stars;
-    document.getElementById("header-trophies").textContent = App.state.trophies;
 
     const submitBtn = container.querySelector("#submit-btn");
     if (correct) {
