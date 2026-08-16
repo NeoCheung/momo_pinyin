@@ -31,8 +31,10 @@ window.Learn = (function () {
     grid.innerHTML = data
       .map((item) => {
         const learned = App.isLearned(kind, item.pinyin);
+        // 右上角 × 用于取消"已学"标记(仅在 learned 时显示)
         return `
           <div class="card learn-card ${learned ? "learned" : ""}" data-pinyin="${item.pinyin}" data-sound="${item.sound}">
+            ${learned ? '<button class="card-unlearn" title="取消已学" aria-label="取消已学">×</button>' : ''}
             <div class="card-big">${item.text}</div>
             <div class="card-example">${item.example}</div>
             <div class="card-check">${learned ? "✓ 已学" : ""}</div>
@@ -42,21 +44,48 @@ window.Learn = (function () {
       .join("");
 
     grid.querySelectorAll(".learn-card").forEach((card) => {
-      card.addEventListener("click", () => {
+      // 卡片主体:点击发音并标记已学
+      card.addEventListener("click", (e) => {
+        // 点到右上角 × 时,不发音也不标记,交给 unlearn 按钮处理
+        if (e.target.closest(".card-unlearn")) return;
         const sound = card.dataset.sound;
         const example = card.querySelector(".card-example").textContent;
-        // 按卡片类型拼读：声母=呼读音+例字，韵母=标准音+例字，整体认读=完整音
         const type = currentKind === "INITIALS" ? "initial" : currentKind === "FINALS" ? "final" : "whole";
         PinyinTTS.speakPinyin(sound, type, example, 0.8);
-        App.markLearned(kind, card.dataset.pinyin);
-        card.classList.add("learned");
-        card.querySelector(".card-check").textContent = "✓ 已学";
+
+        // 首次点击 → 标记已学并显示 × 按钮
+        if (!card.classList.contains("learned")) {
+          App.markLearned(kind, card.dataset.pinyin);
+          card.classList.add("learned");
+          card.querySelector(".card-check").textContent = "✓ 已学";
+          if (!card.querySelector(".card-unlearn")) {
+            const x = document.createElement("button");
+            x.className = "card-unlearn";
+            x.title = "取消已学";
+            x.setAttribute("aria-label", "取消已学");
+            x.textContent = "×";
+            x.addEventListener("click", (ev) => onUnlearn(ev, card, kind));
+            card.appendChild(x);
+          }
+        }
         pop(card);
       });
+
+      // 已有 × 按钮的绑定
+      const unlearnBtn = card.querySelector(".card-unlearn");
+      if (unlearnBtn) unlearnBtn.addEventListener("click", (e) => onUnlearn(e, card, kind));
     });
   }
 
-  // 点击弹跳动画
+  function onUnlearn(e, card, kind) {
+    e.stopPropagation();
+    App.unmarkLearned(kind, card.dataset.pinyin);
+    card.classList.remove("learned");
+    card.querySelector(".card-check").textContent = "";
+    const btn = card.querySelector(".card-unlearn");
+    if (btn) btn.remove();
+  }
+
   function pop(el) {
     el.classList.remove("pop");
     void el.offsetWidth;

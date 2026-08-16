@@ -59,14 +59,34 @@ window.PinyinTTS = (function () {
     return voices.find((v) => (v.lang || "").toLowerCase().startsWith("zh-cn")) || null;
   }
 
-  // 页面右下角显示当前选中的语音,方便 iPhone/iPad 上排查
+  // 页面右下角显示当前选中的语音,默认关闭。开启方式:
+  //   1) URL 加 ?debug=tts        —— 例:https://...github.io?debug=tts
+  //   2) Console 执行 PinyinTTS.showDebug()  —— 手动打开
+  //   3) 再次执行 PinyinTTS.hideDebug()      —— 关闭
+  let __debugOn = false;
+  function debugEnabledByURL() {
+    try {
+      const u = new URL(window.location.href);
+      return u.searchParams.get("debug") === "tts" || u.hash.includes("debug=tts");
+    } catch (e) { return false; }
+  }
   function showDebugBadge() {
-    if (document.getElementById("__tts_badge")) return;
+    __debugOn = true;
+    if (document.getElementById("__tts_badge")) return updateDebugBadge();
     const el = document.createElement("div");
     el.id = "__tts_badge";
-    el.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:99999;padding:6px 10px;background:rgba(0,0,0,.75);color:#fff;font:12px/1.4 -apple-system,sans-serif;border-radius:8px;max-width:70vw;pointer-events:none;";
+    el.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:99999;padding:6px 10px;background:rgba(0,0,0,.75);color:#fff;font:12px/1.4 -apple-system,sans-serif;border-radius:8px;max-width:70vw;pointer-events:auto;cursor:pointer;";
     el.textContent = "TTS: (等待语音就绪)";
-    document.body && document.body.appendChild(el);
+    el.title = "点击关闭";
+    el.addEventListener("click", hideDebugBadge);
+    if (document.body) document.body.appendChild(el);
+    else document.addEventListener("DOMContentLoaded", () => document.body.appendChild(el), { once: true });
+    updateDebugBadge();
+  }
+  function hideDebugBadge() {
+    __debugOn = false;
+    const el = document.getElementById("__tts_badge");
+    if (el) el.remove();
   }
   function updateDebugBadge() {
     const el = document.getElementById("__tts_badge");
@@ -79,7 +99,7 @@ window.PinyinTTS = (function () {
       el.textContent = `TTS ✓ ${picked.name} [${picked.lang}] | zh-CN:${zhCN.length} zh-HK:${zhHK.length}`;
       el.style.background = "rgba(20,120,40,.85)";
     } else if (zhHK.length && !zhCN.length) {
-      el.textContent = `⚠️ 未装普通话!仅粤语 zh-HK×${zhHK.length}。请到设置→辅助功能→朗读内容→嗓音下载"普通话-婷婷"`;
+      el.textContent = `⚠️ 未装普通话!仅粤语 zh-HK×${zhHK.length}。设置→辅助功能→朗读内容→嗓音下载"婷婷"`;
       el.style.background = "rgba(180,30,30,.9)";
     } else {
       el.textContent = `⚠️ 未找到 zh-CN 语音 (共 ${voices.length} 个)`;
@@ -90,12 +110,16 @@ window.PinyinTTS = (function () {
   function init() {
     if (!("speechSynthesis" in window)) return;
     speechSynthesis.getVoices();
-    // DOM 就绪后挂调试徽章;并监听 voiceschanged 更新
-    const attach = () => { showDebugBadge(); updateDebugBadge(); };
-    if (document.body) attach();
-    else document.addEventListener("DOMContentLoaded", attach, { once: true });
+    // 只在 URL 显式要求时才自动挂徽章
+    if (debugEnabledByURL()) {
+      const attach = () => showDebugBadge();
+      if (document.body) attach();
+      else document.addEventListener("DOMContentLoaded", attach, { once: true });
+    }
     if (!window.__voiceInitBound) {
-      window.speechSynthesis.onvoiceschanged = updateDebugBadge;
+      window.speechSynthesis.onvoiceschanged = function () {
+        if (__debugOn) updateDebugBadge();
+      };
       window.__voiceInitBound = true;
     }
   }
@@ -231,5 +255,5 @@ window.PinyinTTS = (function () {
 
   init();
 
-  return { speak, speakPinyin, spellWord, supported, init };
+  return { speak, speakPinyin, spellWord, supported, init, showDebug: showDebugBadge, hideDebug: hideDebugBadge };
 })();

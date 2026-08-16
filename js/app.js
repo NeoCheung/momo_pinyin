@@ -105,6 +105,14 @@ window.App = (function () {
       save();
     }
   }
+  function unmarkLearned(kind, item) {
+    const key = kind === "initials" ? "initials" : "finals";
+    const i = state.progress[key].indexOf(item);
+    if (i >= 0) {
+      state.progress[key].splice(i, 1);
+      save();
+    }
+  }
   function isLearned(kind, item) {
     const key = kind === "initials" ? "initials" : "finals";
     return state.progress[key].includes(item);
@@ -139,6 +147,7 @@ window.App = (function () {
     setCheckin,
     todayGoalMet,
     markLearned,
+    unmarkLearned,
     isLearned,
     verifyPin,
     resetForDemo,

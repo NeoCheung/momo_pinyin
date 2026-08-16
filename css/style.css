@@ -152,12 +152,33 @@ button:active { transform: scale(0.96); }
   align-items: center;
   justify-content: center;
   transition: transform 0.1s;
+  position: relative;
 }
 .card:active { transform: scale(0.95); }
 .card-big { font-size: 40px; font-weight: 800; color: var(--primary-dark); }
 .card-example { font-size: 14px; color: #999; margin-top: 6px; }
 .card-check { font-size: 12px; color: var(--green); min-height: 16px; margin-top: 4px; }
 .learn-card.learned { border: 3px solid var(--green); }
+.card-unlearn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(244, 67, 54, 0.85);
+  color: #fff;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-unlearn:active { transform: scale(0.9); }
 .card.pop { animation: pop 0.3s; }
 @keyframes pop {
   0% { transform: scale(1); }
@@ -226,6 +247,59 @@ button:active { transform: scale(0.96); }
   color: #fff;
   border-color: var(--green);
 }
+.answer-btn.selected {
+  border-color: var(--primary);
+  background: #FFF3E0;
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.25);
+}
+.answer-btn.answer-correct {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.answer-btn.answer-wrong {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+/* 提交/下一题 按钮 */
+.action-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+.submit-btn {
+  min-width: 180px;
+  padding: 14px 24px;
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.submit-btn:disabled {
+  background: #d8cebe;
+  cursor: not-allowed;
+}
+.submit-btn:not(:disabled):active { transform: scale(0.96); }
+
+/* 听音重放按钮 */
+.replay-btn {
+  margin-left: 8px;
+  padding: 6px 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--blue);
+  color: #fff;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.replay-btn:active { transform: scale(0.95); }
 .tone-btn { font-size: 26px; }
 .build-word {
   text-align: center;
