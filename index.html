@@ -59,14 +59,14 @@
     </button>
   </nav>
 
-  <script src="js/pinyin-data.js?v=14"></script>
-  <script src="js/tts.js?v=14"></script>
-  <script src="js/app.js?v=14"></script>
-  <script src="js/learn.js?v=14"></script>
-  <script src="js/practice.js?v=14"></script>
-  <script src="js/checkin.js?v=14"></script>
-  <script src="js/parents.js?v=14"></script>
-  <script src="js/mistakes.js?v=14"></script>
+  <script src="js/pinyin-data.js?v=15"></script>
+  <script src="js/tts.js?v=15"></script>
+  <script src="js/app.js?v=15"></script>
+  <script src="js/learn.js?v=15"></script>
+  <script src="js/practice.js?v=15"></script>
+  <script src="js/checkin.js?v=15"></script>
+  <script src="js/parents.js?v=15"></script>
+  <script src="js/mistakes.js?v=15"></script>
   <script>
     // 应用启动：路由 + 渲染
     const main = document.getElementById("main");
@@ -164,10 +164,31 @@
     // 初始渲染
     renderView("learn");
 
-    // 注册 service worker（离线）
+    // 注册 service worker(离线)+ 自动检测新版本并静默刷新
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("sw.js").catch(() => {});
+        navigator.serviceWorker.register("sw.js").then((reg) => {
+          // 页面加载时主动 check 一次
+          reg.update().catch(() => {});
+          // 新 SW 被发现时,监听它进入 installed(有旧 SW 时说明是"等待更新")
+          reg.addEventListener("updatefound", () => {
+            const newSW = reg.installing;
+            if (!newSW) return;
+            newSW.addEventListener("statechange", () => {
+              if (newSW.state === "installed" && navigator.serviceWorker.controller) {
+                // 有旧 SW 在跑说明是"新版等激活",让它立即接管
+                newSW.postMessage({ type: "SKIP_WAITING" });
+              }
+            });
+          });
+        }).catch(() => {});
+        // 新 SW 接管后自动 reload,页面切到最新版
+        let reloading = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (reloading) return;
+          reloading = true;
+          window.location.reload();
+        });
       });
     }
 

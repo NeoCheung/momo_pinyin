@@ -4,7 +4,7 @@
 //   2) fetch 时对所有同源请求做 cache-first + 运行时按需缓存
 //      → audio/pinyin/*.mp3 采用这条路径,只有用户点过的音节才落缓存,首次访问不下 30MB
 //   3) 修改静态资源后 CACHE 版本 +1,重装 SW 会清旧缓存
-const CACHE = "pinyin-tool-v14";
+const CACHE = "pinyin-tool-v15";
 const ASSETS = [
   "./",
   "./index.html",
@@ -23,8 +23,14 @@ const ASSETS = [
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    // 不再自动 skipWaiting,由页面在 controllerchange 之前显式发消息触发
+    caches.open(CACHE).then((c) => c.addAll(ASSETS))
   );
+});
+
+// 接收页面消息,决定何时激活新 SW
+self.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {

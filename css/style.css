@@ -626,6 +626,21 @@ button:active { transform: scale(0.96); }
 .parent-title { font-size: 24px; font-weight: 800; margin-bottom: 12px; }
 .parent-section { margin-bottom: 20px; }
 .parent-section h3 { font-size: 18px; color: var(--primary-dark); margin-bottom: 8px; }
+.section-hint {
+  color: #999;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 6px 0 12px;
+}
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.backup-actions .primary-btn { flex: 1; min-width: 140px; }
+.primary-btn.secondary {
+  background: var(--blue);
+}
 .parent-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

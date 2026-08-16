@@ -74,7 +74,68 @@ window.App = (function () {
     } catch (e) {
       console.warn("localStorage 写入失败", e);
     }
+    // 同步写 IndexedDB 备份(异步不阻塞)
+    idbBackup(currentProfile, state).catch(() => {});
   }
+
+  // ---------- IndexedDB 备份层 ----------
+  // 目的:localStorage 被清网站数据/换浏览器/隐私模式导致丢失时,可从 IDB 恢复
+  const IDB_NAME = "pinyin_backup_v1";
+  const IDB_STORE = "profiles";
+  let idbPromise = null;
+  function openIDB() {
+    if (idbPromise) return idbPromise;
+    idbPromise = new Promise((resolve, reject) => {
+      if (!("indexedDB" in window)) return reject(new Error("no idb"));
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore(IDB_STORE, { keyPath: "profileId" });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return idbPromise;
+  }
+  async function idbBackup(profileId, data) {
+    try {
+      const db = await openIDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(IDB_STORE, "readwrite");
+        tx.objectStore(IDB_STORE).put({
+          profileId,
+          data,
+          savedAt: new Date().toISOString(),
+        });
+        tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+      });
+    } catch (e) { /* IDB 不可用就算了 */ }
+  }
+  async function idbRestore(profileId) {
+    try {
+      const db = await openIDB();
+      return await new Promise((res, rej) => {
+        const tx = db.transaction(IDB_STORE, "readonly");
+        const req = tx.objectStore(IDB_STORE).get(profileId);
+        req.onsuccess = () => res(req.result ? req.result.data : null);
+        req.onerror = () => rej(req.error);
+      });
+    } catch (e) { return null; }
+  }
+  // 启动兜底:如果 localStorage 里当前 profile 是空的,但 IDB 有备份,自动恢复
+  async function autoRestoreFromIDB() {
+    if (localStorage.getItem(storageKeyFor(currentProfile))) return; // 有 LS 数据不动
+    const backup = await idbRestore(currentProfile);
+    if (backup) {
+      state = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_STATE)), backup);
+      try { localStorage.setItem(storageKeyFor(currentProfile), JSON.stringify(state)); } catch (e) {}
+      console.info(`[App] 已从 IndexedDB 备份恢复账号「${currentProfile}」的数据`);
+      // 通知 UI 全量重渲(星星/打卡/学习进度都需要刷新)
+      document.dispatchEvent(new CustomEvent("app:state-changed"));
+      document.dispatchEvent(new CustomEvent("app:profile-changed", { detail: { profileId: currentProfile, restored: true } }));
+    }
+  }
+  // 页面加载即触发一次(异步,不阻塞初始化)
+  autoRestoreFromIDB().catch(() => {});
 
   function todayStr() {
     const d = new Date();
@@ -232,6 +293,43 @@ window.App = (function () {
     window.scrollTo(0, 0);
   }
 
+  // ---------- 导出/导入(整个账号或全部) ----------
+  // 导出:返回当前账号或所有账号数据的对象
+  function exportData(scope) {
+    if (scope === "all") {
+      const all = {};
+      PROFILES.forEach((p) => {
+        try {
+          const raw = localStorage.getItem(storageKeyFor(p.id));
+          if (raw) all[p.id] = JSON.parse(raw);
+        } catch (e) { /* ignore */ }
+      });
+      return { format: "pinyin-tool-backup-v1", scope: "all", exportedAt: new Date().toISOString(), profiles: all };
+    }
+    return { format: "pinyin-tool-backup-v1", scope: "current", exportedAt: new Date().toISOString(), profileId: currentProfile, data: JSON.parse(JSON.stringify(state)) };
+  }
+  // 导入:回填数据到 localStorage 并触发重渲
+  function importData(json) {
+    if (!json || json.format !== "pinyin-tool-backup-v1") throw new Error("文件格式不正确");
+    if (json.scope === "all" && json.profiles) {
+      Object.keys(json.profiles).forEach((pid) => {
+        if (PROFILES.some((p) => p.id === pid)) {
+          localStorage.setItem(storageKeyFor(pid), JSON.stringify(json.profiles[pid]));
+        }
+      });
+    } else if (json.data) {
+      const pid = json.profileId && PROFILES.some((p) => p.id === json.profileId) ? json.profileId : currentProfile;
+      localStorage.setItem(storageKeyFor(pid), JSON.stringify(json.data));
+    } else {
+      throw new Error("文件内容为空");
+    }
+    // 重新加载当前 profile 的 state
+    state = load();
+    save(); // 触发 IDB 备份
+    document.dispatchEvent(new CustomEvent("app:state-changed"));
+    document.dispatchEvent(new CustomEvent("app:profile-changed", { detail: { profileId: currentProfile, restored: true } }));
+  }
+
   return {
     get state() { return state; },
     save,
@@ -254,6 +352,10 @@ window.App = (function () {
     listProfiles,
     getCurrentProfile,
     switchProfile,
+    // 备份/恢复
+    exportData,
+    importData,
+    idbRestore,
     STORAGE_KEY: STORAGE_PREFIX,
   };
 })();
