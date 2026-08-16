@@ -17,10 +17,13 @@
 
 ```bash
 # 本地预览
-cd pinyin_tool
 python3 -m http.server 8080
-# 浏览器打开 http://localhost:8080
+# 用 Safari 打开 http://localhost:8080
 ```
+
+> ⚠️ **浏览器建议**：请使用 **Safari** 打开。Chrome for macOS 存在中文 TTS voice
+> 绑定 bug——即使代码显式选中普通话语音（婷婷/Tingting），底层仍可能渲染出粤语。
+> Safari 使用 `AVSpeechSynthesizer`,能正确按 `zh-CN` 发普通话音。
 
 ## 📱 部署到 iPad
 
