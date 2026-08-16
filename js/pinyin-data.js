@@ -32,7 +32,7 @@ window.PINYIN_DATA = (function () {
   // 韵母
   const FINALS = [
     { pinyin: "a", text: "a", example: "啊 ā", sound: "a1" },
-    { pinyin: "o", text: "o", example: "哦 ó", sound: "o2" },
+    { pinyin: "o", text: "o", example: "哦 ó", sound: "wo2" },
     { pinyin: "e", text: "e", example: "鹅 é", sound: "e2" },
     { pinyin: "i", text: "i", example: "衣 yī", sound: "yi1" },
     { pinyin: "u", text: "u", example: "乌 wū", sound: "wu1" },
@@ -104,7 +104,7 @@ window.PINYIN_DATA = (function () {
     { char: "日", pinyin: "rì", sound: "ri4" },
     { char: "天", pinyin: "tiān", sound: "tian1" },
     { char: "地", pinyin: "dì", sound: "di4" },
-    { char: "红", pinyin: "hóng", sound: "hong2" },
+    { char: "虫", pinyin: "chóng", sound: "chong2" },
     { char: "绿", pinyin: "lǜ", sound: "lv4" },
     { char: "书", pinyin: "shū", sound: "shu1" },
     { char: "笔", pinyin: "bǐ", sound: "bi3" },

@@ -45,9 +45,9 @@ window.PinyinTTS = (function () {
     ün: { 1: { han: "晕", sound: "yun1" }, 2: { han: "云", sound: "yun2" }, 3: { han: "允", sound: "yun3" }, 4: { han: "运", sound: "yun4" } },
     üan: { 1: { han: "冤", sound: "yuan1" }, 2: { han: "元", sound: "yuan2" }, 3: { han: "远", sound: "yuan3" }, 4: { han: "愿", sound: "yuan4" } },
     ang: { 1: { han: "肮", sound: "ang1" }, 2: { han: "昂", sound: "ang2" }, 3: { han: "昂", sound: "ang3" }, 4: { han: "盎", sound: "ang4" } },
-    eng: { 1: { han: "鞥", sound: "weng1" }, 2: { han: "嗯", sound: "weng2" }, 3: { han: "嗯", sound: "weng3" }, 4: { han: "嗯", sound: "weng4" } },
+    eng: { 1: { han: "鞥", sound: "beng1" }, 2: { han: "鞥", sound: "beng2" }, 3: { han: "鞥", sound: "beng3" }, 4: { han: "鞥", sound: "beng4" } },
     ing: { 1: { han: "英", sound: "ying1" }, 2: { han: "迎", sound: "ying2" }, 3: { han: "影", sound: "ying3" }, 4: { han: "应", sound: "ying4" } },
-    ong: { 1: { han: "翁", sound: "weng1" }, 2: { han: "嗡", sound: "weng2" }, 3: { han: "翁", sound: "weng3" }, 4: { han: "瓮", sound: "weng4" } },
+    ong: { 1: { han: "翁", sound: "dong1" }, 2: { han: "嗡", sound: "dong2" }, 3: { han: "翁", sound: "dong3" }, 4: { han: "瓮", sound: "dong4" } },
     uan: { 1: { han: "弯", sound: "wan1" }, 2: { han: "完", sound: "wan2" }, 3: { han: "晚", sound: "wan3" }, 4: { han: "万", sound: "wan4" } },
     uang: { 1: { han: "汪", sound: "wang1" }, 2: { han: "王", sound: "wang2" }, 3: { han: "网", sound: "wang3" }, 4: { han: "望", sound: "wang4" } },
     iong: { 1: { han: "雍", sound: "yong1" }, 2: { han: "庸", sound: "yong2" }, 3: { han: "永", sound: "yong3" }, 4: { han: "用", sound: "yong4" } },
@@ -252,9 +252,14 @@ window.PinyinTTS = (function () {
       return playSequence(items, rate);
     }
     if (type === "final") {
-      const fh = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
+      // eng/ong/o/ing 等韵母无法独立成音节,只播例字避免误导;
+      //   ing 独立时读 "英"(有),o 独立几乎无字,eng/ong 无独立字
+      const NO_STANDALONE_SYLLABLE = new Set(["o", "eng", "ong"]);
       const items = [];
-      if (fh) items.push(fh); else items.push({ sound, han: final });
+      if (!NO_STANDALONE_SYLLABLE.has(final)) {
+        const fh = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
+        if (fh) items.push(fh); else items.push({ sound, han: final });
+      }
       if (exHan) items.push({ sound: exSound, han: exHan });
       return playSequence(items, rate);
     }
