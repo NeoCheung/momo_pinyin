@@ -106,13 +106,24 @@ window.App = (function () {
     if (correct) {
       state.stats.correct++;
       state.stars += 1;
+      // 策略 A:答对就从错题本移除该条
+      if (state.mistakes[pinyinKey]) {
+        delete state.mistakes[pinyinKey];
+      }
     } else {
       if (!state.mistakes[pinyinKey]) {
-        state.mistakes[pinyinKey] = { count: 0, last: todayStr(), py: display, type };
+        state.mistakes[pinyinKey] = {
+          count: 0,
+          last: todayStr(),
+          added: todayStr(),
+          py: display,
+          type,
+        };
       }
       state.mistakes[pinyinKey].count++;
       state.mistakes[pinyinKey].last = todayStr();
       state.mistakes[pinyinKey].py = display;
+      state.mistakes[pinyinKey].type = type;
     }
     state.stats.total++;
     state.stats.byType[type] = state.stats.byType[type] || { correct: 0, total: 0 };
@@ -123,6 +134,46 @@ window.App = (function () {
       state.stars -= 10;
       state.trophies++;
     }
+    save();
+  }
+
+  // ---------- 错题本 ----------
+  // 返回待改错列表:反查 PINYIN_DATA.WORDS 补齐 char;找不到的脏数据顺手清掉
+  function getPendingMistakes() {
+    const list = [];
+    let dirty = false;
+    for (const key of Object.keys(state.mistakes)) {
+      const m = state.mistakes[key];
+      const word = (window.PINYIN_DATA ? PINYIN_DATA.WORDS : []).find((w) => w.sound === key);
+      if (!word) {
+        delete state.mistakes[key];
+        dirty = true;
+        continue;
+      }
+      list.push({
+        sound: key,
+        char: word.char,
+        pinyin: word.pinyin,
+        wordRef: word,
+        count: m.count || 0,
+        last: m.last || "",
+        added: m.added || m.last || "",
+        type: m.type || "listen",
+        py: m.py || word.pinyin,
+      });
+    }
+    if (dirty) save();
+    // 错次多、最近错的排前面
+    list.sort((a, b) => (b.count - a.count) || (b.last > a.last ? 1 : -1));
+    return list;
+  }
+
+  function mistakesCount() {
+    return Object.keys(state.mistakes).length;
+  }
+
+  function clearAllMistakes() {
+    state.mistakes = {};
     save();
   }
 
@@ -189,6 +240,10 @@ window.App = (function () {
     verifyPin,
     resetForDemo,
     navigate,
+    // 错题本
+    getPendingMistakes,
+    mistakesCount,
+    clearAllMistakes,
     // 账号
     listProfiles,
     getCurrentProfile,

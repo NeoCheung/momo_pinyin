@@ -23,6 +23,13 @@
     </div>
   </header>
 
+  <!-- 顶部次级 tab:错题本入口 -->
+  <div class="top-tabs">
+    <button class="top-tab" id="top-tab-mistakes" data-view="mistakes">
+      📕 错题本 <span class="tab-badge" id="mistakes-badge" hidden>0</span>
+    </button>
+  </div>
+
   <!-- 账号切换弹层 -->
   <div class="profile-sheet" id="profile-sheet" hidden>
     <div class="profile-sheet-mask" data-close="1"></div>
@@ -52,13 +59,14 @@
     </button>
   </nav>
 
-  <script src="js/pinyin-data.js?v=9"></script>
-  <script src="js/tts.js?v=9"></script>
-  <script src="js/app.js?v=9"></script>
-  <script src="js/learn.js?v=9"></script>
-  <script src="js/practice.js?v=9"></script>
-  <script src="js/checkin.js?v=9"></script>
-  <script src="js/parents.js?v=9"></script>
+  <script src="js/pinyin-data.js?v=10"></script>
+  <script src="js/tts.js?v=10"></script>
+  <script src="js/app.js?v=10"></script>
+  <script src="js/learn.js?v=10"></script>
+  <script src="js/practice.js?v=10"></script>
+  <script src="js/checkin.js?v=10"></script>
+  <script src="js/parents.js?v=10"></script>
+  <script src="js/mistakes.js?v=10"></script>
   <script>
     // 应用启动：路由 + 渲染
     const main = document.getElementById("main");
@@ -73,6 +81,18 @@
       btn.innerHTML = `${p.icon} ${p.label} <span class="chev">▾</span>`;
       btn.classList.toggle("is-test", p.id === "test");
       document.body.classList.toggle("profile-test", p.id === "test");
+      // 更新错题本 badge
+      const n = App.mistakesCount();
+      const badge = document.getElementById("mistakes-badge");
+      if (n > 0) {
+        badge.textContent = n;
+        badge.hidden = false;
+      } else {
+        badge.hidden = true;
+      }
+      // 高亮当前 tab
+      const topTab = document.getElementById("top-tab-mistakes");
+      topTab.classList.toggle("active", currentView === "mistakes");
     }
 
     function renderView(view) {
@@ -93,6 +113,9 @@
         case "parents":
           Parents.render(main);
           break;
+        case "mistakes":
+          Mistakes.render(main);
+          break;
       }
       renderHeader();
     }
@@ -100,6 +123,9 @@
     navItems.forEach((n) => {
       n.addEventListener("click", () => renderView(n.dataset.view));
     });
+
+    // 顶部错题本 tab
+    document.getElementById("top-tab-mistakes").addEventListener("click", () => renderView("mistakes"));
 
     // ---------- 账号切换 UI ----------
     const sheet = document.getElementById("profile-sheet");

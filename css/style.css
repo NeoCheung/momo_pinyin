@@ -175,6 +175,115 @@ body.profile-test::before {
   padding-bottom: 90px; /* 给底部导航留空间 */
 }
 
+/* 顶部次级 tab */
+.top-tabs {
+  background: #fff;
+  border-bottom: 1px solid #efe6d5;
+  padding: 8px 16px;
+  display: flex;
+  gap: 8px;
+  position: sticky;
+  top: 64px;
+  z-index: 8;
+}
+.top-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  border: 2px solid #eadfcb;
+  border-radius: 18px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.top-tab:active { transform: scale(0.96); }
+.top-tab.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--red);
+  color: #fff;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* 错题本 */
+.mistakes-panel {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+.mistakes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.mistakes-count-line { font-size: 16px; color: var(--text); }
+.mistakes-count-line b { color: var(--red); font-size: 22px; margin: 0 4px; }
+.mistakes-empty {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 20px;
+  color: #999;
+}
+.mistake-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.mistake-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px dashed #efe6d5;
+  font-size: 15px;
+}
+.mistake-list li:last-child { border-bottom: none; }
+.mistake-idx {
+  display: inline-block;
+  min-width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 50%;
+  background: #FFF3E0;
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+.mistake-py { font-family: -apple-system, "PingFang SC", serif; color: var(--primary-dark); font-weight: 700; min-width: 60px; }
+.mistake-char { font-size: 20px; font-weight: 800; min-width: 30px; }
+.mistake-count { color: var(--red); font-size: 13px; margin-left: auto; }
+.mistake-type { color: #999; font-size: 13px; }
+.mistakes-actions {
+  margin-top: 16px;
+  text-align: center;
+}
+.mistake-progress {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--primary-dark);
+  margin-left: 8px;
+}
+
 /* 底部导航 */
 .bottom-nav {
   position: fixed;

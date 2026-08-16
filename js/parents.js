@@ -59,6 +59,9 @@ window.Parents = (function () {
                 )
                 .join("")}
             </ul>
+            <div style="margin-top:12px;text-align:right;">
+              <button class="ghost-btn" id="goto-mistakes">进入错题本改错 →</button>
+            </div>
           ` : `<p class="empty">暂无错题，很棒！🎉</p>`}
         </div>
 
@@ -102,6 +105,11 @@ window.Parents = (function () {
       a.href = URL.createObjectURL(blob);
       a.download = "pinyin-data.json";
       a.click();
+    });
+
+    const gotoBtn = container.querySelector("#goto-mistakes");
+    if (gotoBtn) gotoBtn.addEventListener("click", () => {
+      document.getElementById("top-tab-mistakes").click();
     });
   }
 
