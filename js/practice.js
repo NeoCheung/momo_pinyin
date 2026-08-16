@@ -87,7 +87,7 @@ window.Practice = (function () {
     const q = (current = makeQuestion());
 
     if (current.speakOnShow) {
-      setTimeout(() => PinyinTTS.spellWord(current.speakOnShow.char, current.speakOnShow.sound, 0.8), 50);
+      setTimeout(() => PinyinTTS.speakChar(current.speakOnShow.char, current.speakOnShow.sound, 0.8), 50);
     }
 
     // 题干:听音题额外带一个重放按钮
@@ -123,7 +123,7 @@ window.Practice = (function () {
       const rb = area.querySelector("#replay-btn");
       rb.addEventListener("click", (e) => {
         e.stopPropagation();
-        PinyinTTS.spellWord(q.q.char, q.q.sound, 0.8);
+        PinyinTTS.speakChar(q.q.char, q.q.sound, 0.8);
       });
     }
 
@@ -141,7 +141,7 @@ window.Practice = (function () {
     `;
     area.querySelector(".mini-speak").addEventListener("click", (e) => {
       e.stopPropagation();
-      PinyinTTS.spellWord(q.char, q.sound, 0.8);
+      PinyinTTS.speakChar(q.char, q.sound, 0.8);
     });
   }
 
@@ -198,7 +198,7 @@ window.Practice = (function () {
       streak++;
       document.querySelector("#streak").textContent = streak;
       App.recordAnswer(true, mode, q.q.sound, q.q.pinyin);
-      PinyinTTS.spellWord(q.q.char, q.q.sound, 0.9);
+      PinyinTTS.speakChar(q.q.char, q.q.sound, 0.9);
       showFeedback("✅ 太棒了！", true);
       // 答对:1.2 秒后自动进入下一题
       submitBtn.style.display = "none";
@@ -221,7 +221,7 @@ window.Practice = (function () {
       App.recordAnswer(false, mode, q.q.sound, q.q.pinyin);
       showFeedback("❌ 再听一次正确读音，然后点「下一题」", false);
       // 答错:播放正确答案读音,并把提交按钮换成"下一题"
-      PinyinTTS.spellWord(q.q.char, q.q.sound, 0.85);
+      PinyinTTS.speakChar(q.q.char, q.q.sound, 0.85);
       submitBtn.textContent = "下一题 →";
       submitBtn.disabled = false;
       submitBtn.classList.add("next-btn");

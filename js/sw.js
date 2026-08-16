@@ -4,7 +4,7 @@
 //   2) fetch 时对所有同源请求做 cache-first + 运行时按需缓存
 //      → audio/pinyin/*.mp3 采用这条路径,只有用户点过的音节才落缓存,首次访问不下 30MB
 //   3) 修改静态资源后 CACHE 版本 +1,重装 SW 会清旧缓存
-const CACHE = "pinyin-tool-v15";
+const CACHE = "pinyin-tool-v16";
 const ASSETS = [
   "./",
   "./index.html",

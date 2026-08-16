@@ -80,7 +80,7 @@ window.Mistakes = (function () {
 
     // 展示音:进入题目时自动读一遍(仅 listen 类)
     if (q.speakOnShow) {
-      setTimeout(() => PinyinTTS.spellWord(q.speakOnShow.char, q.speakOnShow.sound, 0.8), 50);
+      setTimeout(() => PinyinTTS.speakChar(q.speakOnShow.char, q.speakOnShow.sound, 0.8), 50);
     }
 
     let promptHTML = `<div class="question-prompt">${q.prompt}`;
@@ -129,13 +129,13 @@ window.Mistakes = (function () {
     if (q.type === "listen") {
       container.querySelector("#replay-btn").addEventListener("click", (e) => {
         e.stopPropagation();
-        PinyinTTS.spellWord(q.q.char, q.q.sound, 0.8);
+        PinyinTTS.speakChar(q.q.char, q.q.sound, 0.8);
       });
     }
     if (q.type === "build") {
       container.querySelector(".mini-speak").addEventListener("click", (e) => {
         e.stopPropagation();
-        PinyinTTS.spellWord(q.q.char, q.q.sound, 0.8);
+        PinyinTTS.speakChar(q.q.char, q.q.sound, 0.8);
       });
     }
 
@@ -187,7 +187,7 @@ window.Mistakes = (function () {
     if (correct) {
       btn.classList.remove("selected");
       btn.classList.add("answer-correct");
-      PinyinTTS.spellWord(q.q.char, q.q.sound, 0.9);
+      PinyinTTS.speakChar(q.q.char, q.q.sound, 0.9);
       showFeedback(container, "✅ 答对啦!这题从错题本移除", true);
       submitBtn.style.display = "none";
       // 从当前队列头移除,进入下一题
@@ -210,7 +210,7 @@ window.Mistakes = (function () {
           if (parseInt(b.dataset.tone, 10) === expected) b.classList.add("correct-highlight");
         });
       }
-      PinyinTTS.spellWord(q.q.char, q.q.sound, 0.85);
+      PinyinTTS.speakChar(q.q.char, q.q.sound, 0.85);
       showFeedback(container, "❌ 再听一次正确读音,然后点「下一题」", false);
       submitBtn.textContent = "下一题 →";
       submitBtn.disabled = false;

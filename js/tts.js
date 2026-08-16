@@ -217,6 +217,7 @@ window.PinyinTTS = (function () {
 
   // 拼读一个汉字音节:声母呼读音 → 韵母带调 → 完整字(三段)
   // 例:爸 ba1  →  bo1(玻) + a4(啊) + ba4(爸)
+  // 用于学习场景;练习/错题请用 speakChar(单段)
   function spellWord(char, sound, rate = 1.0) {
     const toneMatch = String(sound).match(/(\d)$/);
     const tone = toneMatch ? Number(toneMatch[1]) : 1;
@@ -231,6 +232,11 @@ window.PinyinTTS = (function () {
     // 完整字:sound 就是原样,han 就是 char
     if (!items.some((x) => x.sound === sound)) items.push({ sound, han: char });
     return playSequence(items, rate);
+  }
+
+  // 只播完整字单段;练习/错题场景用,不做拼读分段
+  function speakChar(char, sound, rate = 1.0) {
+    return playSyllableWithFallback(sound, char, rate);
   }
 
   // 学习卡片朗读:
@@ -299,5 +305,5 @@ window.PinyinTTS = (function () {
 
   init();
 
-  return { speak, speakPinyin, spellWord, supported, init, showDebug: showDebugBadge, hideDebug: hideDebugBadge };
+  return { speak, speakPinyin, spellWord, speakChar, supported, init, showDebug: showDebugBadge, hideDebug: hideDebugBadge };
 })();
