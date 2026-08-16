@@ -40,6 +40,7 @@ window.PinyinTTS = (function () {
     in: { 1: "音", 2: "银", 3: "引", 4: "印" },
     un: { 1: "温", 2: "文", 3: "吻", 4: "问" },
     ün: { 1: "晕", 2: "云", 3: "允", 4: "运" },
+    üan: { 1: "冤", 2: "元", 3: "远", 4: "愿" },
     ang: { 1: "肮", 2: "昂", 3: "昂", 4: "盎" },
     eng: { 1: "鞥", 2: "嗯", 3: "嗯", 4: "嗯" },
     ing: { 1: "英", 2: "迎", 3: "影", 4: "应" },
@@ -187,14 +188,20 @@ window.PinyinTTS = (function () {
     return speakSingle(parts.join("、"), rate);
   }
 
-  // 拼读一个汉字音节:声母呼读音 → 完整字
-  // 例:爸 ba1  →  玻、爸    妈 ma1 → 摸、妈
-  // 零声母(a/o/e/yi/wu 等):直接读完整字
+  // 拼读一个汉字音节:声母呼读音 → 韵母带调 → 完整字(三段)
+  // 例:爸 ba1  →  玻、啊、爸    妈 ma1 → 摸、啊、妈
+  // 零声母(a/o/e/yi/wu 等):走 speakPinyin(whole) 分支,不进这里
   function spellCharacter(char, sound, rate) {
-    const { initial } = splitSyllable(sound);
+    const toneMatch = String(sound).match(/(\d)$/);
+    const tone = toneMatch ? Number(toneMatch[1]) : 1;
+    const { initial, final } = splitSyllable(sound);
+
     const parts = [];
     if (initial && INITIAL_HU[initial]) parts.push(INITIAL_HU[initial]);
-    // 完整字放最后
+    if (final) {
+      const han = FINAL_TONE_HAN[final] && FINAL_TONE_HAN[final][tone];
+      if (han) parts.push(han);
+    }
     if (!parts.includes(char)) parts.push(char);
     return speakSegments(parts, rate);
   }
@@ -210,10 +217,10 @@ window.PinyinTTS = (function () {
     return new Promise((resolve) => waitForVoices(() => resolve(spellCharacter(char, sound, rate))));
   }
 
-  // 学习卡片朗读:统一"引导音 + 完整例字"范式,和 spellCharacter 一致
-  // - 声母 initial:呼读音(如 m→摸) + 例字(如 妈)   —— m、妈
-  // - 韵母 final  :韵母带调音(如 a1→啊) + 例字      —— 啊、爸(例字若与前段相同则省)
-  // - 整体认读 whole:直接读完整例字
+  // 学习卡片朗读:三种类型都走"引导音 + [中间辅助音] + 完整例字"
+  // - 声母 initial:呼读音(如 m→摸) + 例字(如 妈)             —— 摸、妈
+  // - 韵母 final  :韵母带调音(如 a1→啊) + 例字                —— 啊、爸
+  // - 整体认读 whole:y/w 呼读音 + 剩余韵母字母名 + 完整例字   —— 衣、i、衣 / 乌、u、五 / 衣、e、爷
   function speakPinyin(sound, type, example, rate = 0.8) {
     if (!("speechSynthesis" in window)) return Promise.resolve();
     init();
@@ -238,8 +245,32 @@ window.PinyinTTS = (function () {
         resolve(speakSegments(parts, rate));
         return;
       }
-      // whole:整体认读音节,读完整例字即可
-      resolve(speakSingle(exHan || final, rate));
+      // whole 整体认读:三段拼读
+      //   例:yi1 → 衣 (y 呼读音) + i 字母名(用一声"衣") + 衣 (例字)
+      //         yue4 → 衣 (y) + üe 字母名(用一声"约") + 月 (例字)
+      //         wu3 → 乌 (w) + u 字母名(用一声"乌") + 五 (例字)
+      // 注意:y 后面的 u/ue/uan/un 实际是 ü/üe/üan/ün(汉语拼音正字法),
+      //      读音要按 ü 系列走
+      const yToUmlaut = { u: "ü", ue: "üe", uan: "üan", un: "ün" };
+      const parts = [];
+      let leader = null;
+      let restFinal = final;
+      if (final && final[0] === "y") {
+        leader = INITIAL_HU["y"];
+        restFinal = final.slice(1);
+        if (yToUmlaut[restFinal]) restFinal = yToUmlaut[restFinal];
+      } else if (final && final[0] === "w") {
+        leader = INITIAL_HU["w"];
+        restFinal = final.slice(1);
+      }
+      if (leader) parts.push(leader);
+      if (restFinal) {
+        const key = restFinal || final;
+        const restHan = FINAL_TONE_HAN[key] && FINAL_TONE_HAN[key][1];
+        if (restHan) parts.push(restHan);
+      }
+      if (exHan && !parts.includes(exHan)) parts.push(exHan);
+      resolve(speakSegments(parts, rate));
     }));
   }
 

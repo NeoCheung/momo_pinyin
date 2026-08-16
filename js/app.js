@@ -137,6 +137,8 @@ window.App = (function () {
     save();
     // 通知 UI 刷新顶栏(星星/奖杯/错题 badge)
     document.dispatchEvent(new CustomEvent("app:state-changed"));
+    // 兜底:如果 index.html 挂了全局 renderAppHeader,直接调
+    if (typeof window.renderAppHeader === "function") window.renderAppHeader();
   }
 
   // ---------- 错题本 ----------
@@ -178,6 +180,7 @@ window.App = (function () {
     state.mistakes = {};
     save();
     document.dispatchEvent(new CustomEvent("app:state-changed"));
+    if (typeof window.renderAppHeader === "function") window.renderAppHeader();
   }
 
   function todayCheckin() {

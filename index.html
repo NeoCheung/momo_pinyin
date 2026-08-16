@@ -59,14 +59,14 @@
     </button>
   </nav>
 
-  <script src="js/pinyin-data.js?v=11"></script>
-  <script src="js/tts.js?v=11"></script>
-  <script src="js/app.js?v=11"></script>
-  <script src="js/learn.js?v=11"></script>
-  <script src="js/practice.js?v=11"></script>
-  <script src="js/checkin.js?v=11"></script>
-  <script src="js/parents.js?v=11"></script>
-  <script src="js/mistakes.js?v=11"></script>
+  <script src="js/pinyin-data.js?v=12"></script>
+  <script src="js/tts.js?v=12"></script>
+  <script src="js/app.js?v=12"></script>
+  <script src="js/learn.js?v=12"></script>
+  <script src="js/practice.js?v=12"></script>
+  <script src="js/checkin.js?v=12"></script>
+  <script src="js/parents.js?v=12"></script>
+  <script src="js/mistakes.js?v=12"></script>
   <script>
     // 应用启动：路由 + 渲染
     const main = document.getElementById("main");
@@ -87,6 +87,10 @@
       if (n > 0) {
         badge.textContent = n;
         badge.hidden = false;
+        // 数字变动时短暂放大提示
+        badge.classList.remove("bump");
+        void badge.offsetWidth;
+        badge.classList.add("bump");
       } else {
         badge.hidden = true;
       }
@@ -94,6 +98,8 @@
       const topTab = document.getElementById("top-tab-mistakes");
       topTab.classList.toggle("active", currentView === "mistakes");
     }
+    // 暴露到 window,供各视图作为兜底直接调用
+    window.renderAppHeader = renderHeader;
 
     function renderView(view) {
       currentView = view;
